@@ -1,0 +1,66 @@
+button {
+  font-family: 'Inter', sans-serif;
+  background: var(--secondary);
+  color: #fff;
+  border: none;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: background 0.15s, opacity 0.15s, color 0.15s, transform 0.05s;
+}
+
+button:hover {
+  background: var(--secondary-hover);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+button.danger {
+  background: var(--danger);
+}
+
+button.danger:hover {
+  background: var(--danger-hover);
+}
+
+button.pending-delete,
+button.pending-clear {
+  background: var(--warning) !important;
+  color: var(--text) !important;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+}
+
+button:disabled:hover {
+  background: var(--secondary);
+}
+
+/* Primary "Save note" action. Kept after :disabled so the disabled state wins. */
+#saveBtn {
+  background: var(--primary);
+}
+
+#saveBtn:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+#saveBtn:disabled,
+#saveBtn:disabled:hover {
+  background: var(--primary);
+}
+
+/* Visible keyboard focus for all controls. */
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}

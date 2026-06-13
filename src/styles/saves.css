@@ -1,0 +1,83 @@
+ul#savesList {
+  list-style: none;
+  width: 100%;
+  max-width: var(--max-width);
+  margin-top: 1.5rem;
+}
+
+.saveItem {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 0.7rem 0.85rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.saveItem:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--secondary);
+}
+
+.saveTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.saveMeta {
+  font-size: 0.8rem;
+  color: var(--muted);
+  opacity: 0.9;
+}
+
+.preview {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  max-height: 4.2em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  white-space: pre-wrap;
+}
+
+.saveActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.saveActions button {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.3rem 0.7rem;
+}
+
+/* "Switch" uses a quieter outline style; "Delete" stays solid danger. */
+.saveActions button[data-action='load'] {
+  background: #fff;
+  color: var(--secondary);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.saveActions button[data-action='load']:hover {
+  background: var(--border-light);
+  color: var(--text);
+}
+
+.saveActions button.danger {
+  background: var(--danger);
+}
+
+.saveActions button.pending-delete {
+  border-color: var(--warning);
+}

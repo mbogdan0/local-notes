@@ -1,0 +1,119 @@
+#controls {
+  margin-top: 3rem;
+  width: 100%;
+  max-width: var(--max-width);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.controls-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Dropdown menu (Export / Import / Delete all). */
+.menu {
+  position: relative;
+}
+
+.menu-list {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  min-width: 11rem;
+  padding: 0.35rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  animation: menu-in 0.12s ease-out;
+}
+
+/* The class selector above outranks the UA `[hidden]` rule, so restore it. */
+.menu-list[hidden] {
+  display: none;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.menu-list button {
+  background: #fff;
+  color: var(--text);
+  box-shadow: none;
+  text-align: left;
+  font-weight: 400;
+  border-radius: 4px;
+}
+
+.menu-list button:hover {
+  background: var(--border-light);
+}
+
+.menu-list button.menu-danger {
+  color: var(--danger);
+}
+
+.menu-list button.menu-danger:hover {
+  background: #fdecec;
+}
+
+/* Segmented width / font toggles. */
+#viewControls {
+  display: flex;
+  gap: 1rem;
+}
+
+#viewControls > div {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+#viewControls button {
+  border-radius: 0;
+  background: #fff;
+  color: var(--text);
+  opacity: 0.6;
+  box-shadow: none;
+  font-weight: 400;
+}
+
+#viewControls button:hover {
+  background: #fff;
+  opacity: 0.85;
+}
+
+#viewControls button:not(:last-child) {
+  border-right: 1px solid var(--border);
+}
+
+#viewControls button.active-setting {
+  opacity: 1;
+  background: var(--border-light);
+  font-weight: 500;
+}
+
+#viewControls button.active-setting:hover {
+  background: var(--border-light);
+}
+
+/* Below this width even the Narrow preset exceeds the viewport, so both
+   options render identically — hide the dead toggle. */
+@media (max-width: 1100px) {
+  #width-toggle {
+    display: none;
+  }
+}
