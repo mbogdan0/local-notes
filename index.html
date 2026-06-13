@@ -4,9 +4,31 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Local Notes</title>
+    <title>Local Notes — a private, offline pastebin in your browser</title>
+    <meta name="description"
+        content="Local Notes is a private, offline pastebin: a big distraction-free textarea with tabs, instant autosave and search. Everything is stored locally in your browser — nothing ever leaves your device." />
+    <meta name="keywords"
+        content="local pastebin, offline notes, private notepad, browser textarea, autosave, no-backend notes, distraction-free writing" />
+    <meta name="author" content="Bohdan Melnichenko" />
+    <link rel="author" href="https://mbogdan0.github.io/" />
+    <meta name="theme-color" content="#059669" />
+    <link rel="canonical" href="https://mbogdan0.github.io/local-notes/" />
     <meta name="google" content="notranslate" />
     <meta name="yandex" content="none" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://mbogdan0.github.io/local-notes/" />
+    <meta property="og:title" content="Local Notes — a private, offline pastebin in your browser" />
+    <meta property="og:description"
+        content="A big distraction-free textarea with tabs, autosave and search. Everything stays on your device — no servers, no accounts, no tracking." />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Local Notes — a private, offline pastebin in your browser" />
+    <meta name="twitter:description"
+        content="A big distraction-free textarea with tabs, autosave and search. Everything stays on your device." />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23059669'/%3E%3Cg fill='%23ffffff'%3E%3Crect x='26' y='30' width='48' height='9' rx='4.5'/%3E%3Crect x='26' y='48' width='48' height='9' rx='4.5'/%3E%3Crect x='26' y='66' width='30' height='9' rx='4.5'/%3E%3C/g%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,10 +36,24 @@
 </head>
 
 <body>
-    <div id="localBanner">Everything is stored locally in your browser — nothing leaves your device.</div>
+    <header class="visually-hidden">
+        <h1>Local Notes — a private, offline pastebin</h1>
+        <p>
+            A distraction-free writing space that lives entirely in your browser. Jot down text in a big textarea,
+            keep multiple notes open in tabs, save them with one click, and search through everything later.
+            There is no backend and no account: your notes are stored locally with IndexedDB and never leave your
+            device.
+        </p>
+    </header>
+
+    <div id="localBanner">Everything is stored locally in your browser — nothing leaves your device. Open source —
+        <a href="https://github.com/mbogdan0/local-notes" target="_blank" rel="noopener">view the source on GitHub</a>.
+    </div>
+
+    <div id="tabBar" class="tab-bar"></div>
 
     <input id="descInput" type="text" placeholder="Short description (optional)" autocomplete="off" />
-    <textarea id="mainText" placeholder="Start typing…" autofocus></textarea>
+    <textarea id="mainText" placeholder="Start typing…"></textarea>
 
     <div id="controls">
         <div class="controls-left">
@@ -27,6 +63,7 @@
             <div id="menu" class="menu">
                 <button id="menuBtn" type="button" aria-haspopup="true" aria-expanded="false">More ▾</button>
                 <div id="menuList" class="menu-list" hidden>
+                    <button id="saveCloseAllBtn" type="button">Save &amp; close all</button>
                     <button id="exportBtn" type="button">Export</button>
                     <button id="importBtn" type="button">Import</button>
                     <button id="deleteAllBtn" type="button" class="menu-danger">Delete all</button>

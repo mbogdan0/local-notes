@@ -1,5 +1,6 @@
 // Storage keys (localStorage) for the in-progress draft and view settings.
 export const KEY_DRAFT = 'autosave_draft';
+export const KEY_WORKSPACE = 'workspace_tabs';
 export const KEY_WIDTH = 'notes_maxWidth';
 export const KEY_FONT = 'notes_fontFamily';
 

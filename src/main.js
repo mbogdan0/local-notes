@@ -1,23 +1,43 @@
 import './styles/index.css';
 
 import { UNDO_SECONDS, AUTOSAVE_INTERVAL } from './constants.js';
-import { getAllSaves, deleteSave, clearAllSaves } from './db.js';
-import { loadDraft, saveDraft, clearDraft } from './draft.js';
+import { getAllSaves, deleteSave, clearAllSaves, addSave } from './db.js';
 import { makeSave, isDuplicate } from './saves.js';
-import { renderSaves, prependSaveItem } from './render.js';
+import {
+  renderSaves,
+  prependSaveItem,
+  renderTabBar,
+  refreshActiveChip,
+} from './render.js';
 import { filterSaves } from './search.js';
 import { loadSettings, applySetting } from './settings.js';
-import { addSave } from './db.js';
 import { exportSaves, importSaves } from './exportImport.js';
+import {
+  loadWorkspace,
+  persist,
+  list as tabList,
+  active,
+  activeTabId,
+  setActive,
+  updateActive,
+  add as addTab,
+  close as closeTab,
+  markSaved,
+  resetToSingle,
+  isDirty,
+  findByContent,
+} from './tabs.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   const descInput = document.getElementById('descInput');
   const textArea = document.getElementById('mainText');
   const saveBtn = document.getElementById('saveBtn');
   const clearBtn = document.getElementById('clearBtn');
+  const saveCloseAllBtn = document.getElementById('saveCloseAllBtn');
   const searchInput = document.getElementById('searchInput');
   const savesList = document.getElementById('savesList');
   const viewControls = document.getElementById('viewControls');
+  const tabBar = document.getElementById('tabBar');
 
   const menu = document.getElementById('menu');
   const menuBtn = document.getElementById('menuBtn');
@@ -27,13 +47,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const deleteAllBtn = document.getElementById('deleteAllBtn');
   const fileInput = document.getElementById('fileInput');
 
-  let lastLoaded = '';
   let savesCache = [];
   const pendingDeletions = {};
   let pendingClearState = null;
+  let closePopoverEl = null;
+
+  // ---- Editor <-> active tab sync ----
+  const renderBar = () => renderTabBar(tabBar, tabList(), activeTabId());
 
   const updateSaveDisabled = () => {
-    saveBtn.disabled = textArea.value.trim() === '';
+    const t = active();
+    saveBtn.disabled = !t || t.content.trim() === '' || !isDirty(t);
   };
 
   const resize = () => {
@@ -43,12 +67,48 @@ document.addEventListener('DOMContentLoaded', () => {
     window.scrollTo(window.scrollX, scrollPos);
   };
 
+  // Load the active tab's buffer into the editor fields.
+  const loadActiveIntoEditor = () => {
+    const t = active();
+    descInput.value = t ? t.description : '';
+    textArea.value = t ? t.content : '';
+    resize();
+    updateSaveDisabled();
+  };
+
+  // Fold the live editor values back into the active tab.
+  const syncEditorToActive = () => updateActive(textArea.value, descInput.value);
+
+  // Called on every keystroke: keep the active tab + its chip in sync.
+  const onEdit = () => {
+    syncEditorToActive();
+    refreshActiveChip(tabBar, active());
+    updateSaveDisabled();
+    persist();
+  };
+
   const renderFiltered = () => {
-    renderSaves(savesList, filterSaves(savesCache, searchInput.value));
+    renderSaves(savesList, filterSaves(savesCache, searchInput.value), {
+      hasQuery: searchInput.value.trim() !== '',
+    });
   };
 
   const matchesSearch = save =>
     filterSaves([save], searchInput.value).length > 0;
+
+  // Save a tab's content as a new record. Returns 'ok' | 'empty' | 'duplicate'.
+  const saveTab = async tab => {
+    if (!tab) return 'empty';
+    const content = tab.content.trim();
+    if (!content) return 'empty';
+    if (isDuplicate(savesCache, content)) return 'duplicate';
+    const save = makeSave(content, tab.description.trim());
+    await addSave(save);
+    savesCache.push(save);
+    if (matchesSearch(save)) prependSaveItem(savesList, save);
+    markSaved(tab.id);
+    return 'ok';
+  };
 
   // ---- Settings ----
   loadSettings();
@@ -59,63 +119,161 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (btn.dataset.font) applySetting('font', btn.dataset.font);
   });
 
-  // ---- Draft restore ----
-  const draft = loadDraft();
-  if (draft) {
-    textArea.value = draft.text;
-    descInput.value = draft.description;
-    lastLoaded = draft.text;
-    resize();
-  }
-  updateSaveDisabled();
+  // ---- Workspace restore ----
+  loadWorkspace();
+  renderBar();
+  loadActiveIntoEditor();
+  // Focus without letting the tall textarea scroll itself into view on load
+  // (the old `autofocus` attribute made the page jump down past the banner).
+  textArea.focus({ preventScroll: true });
 
-  // ---- Autosave draft ----
-  const autosave = () => {
-    if (pendingClearState && textArea.value === '') return;
-    saveDraft(textArea.value, descInput.value);
-  };
-  setInterval(autosave, AUTOSAVE_INTERVAL);
+  // ---- Autosave workspace ----
+  setInterval(() => {
+    syncEditorToActive();
+    persist();
+  }, AUTOSAVE_INTERVAL);
 
   textArea.addEventListener('input', () => {
     resize();
-    updateSaveDisabled();
+    onEdit();
+  });
+  descInput.addEventListener('input', onEdit);
+
+  // ---- Tab bar (switch / new / close) ----
+  const doClose = id => {
+    const wasActive = id === activeTabId();
+    closeTab(id);
+    renderBar();
+    if (wasActive) loadActiveIntoEditor();
+    persist();
+  };
+
+  const dismissClosePopover = () => {
+    if (closePopoverEl) {
+      closePopoverEl.remove();
+      closePopoverEl = null;
+    }
+  };
+
+  // Inline "unsaved changes" confirmation anchored under a dirty tab.
+  const showClosePopover = (tab, chipEl) => {
+    dismissClosePopover();
+    const pop = document.createElement('div');
+    pop.className = 'tab-popover';
+    pop.innerHTML = `
+      <div class="tab-popover-msg">Unsaved changes</div>
+      <div class="tab-popover-actions">
+        <button data-pop="save" type="button">Save &amp; close</button>
+        <button data-pop="discard" type="button">Discard</button>
+        <button data-pop="cancel" type="button">Cancel</button>
+      </div>`;
+    document.body.appendChild(pop);
+
+    const r = chipEl.getBoundingClientRect();
+    pop.style.top = `${window.scrollY + r.bottom + 4}px`;
+    let left = window.scrollX + r.left;
+    const maxLeft =
+      window.scrollX + document.documentElement.clientWidth - pop.offsetWidth - 8;
+    if (left > maxLeft) left = Math.max(8, maxLeft);
+    pop.style.left = `${left}px`;
+
+    pop.addEventListener('click', async e => {
+      const b = e.target.closest('button');
+      if (!b) return;
+      const action = b.dataset.pop;
+      if (action === 'cancel') {
+        dismissClosePopover();
+        return;
+      }
+      if (action === 'save') await saveTab(tab);
+      dismissClosePopover();
+      doClose(tab.id);
+    });
+    closePopoverEl = pop;
+  };
+
+  tabBar.addEventListener('click', e => {
+    // Always capture the latest editor state into the active tab first.
+    syncEditorToActive();
+
+    const addBtn = e.target.closest('.tab-add');
+    if (addBtn) {
+      addTab();
+      renderBar();
+      loadActiveIntoEditor();
+      persist();
+      textArea.focus();
+      return;
+    }
+
+    const closeBtn = e.target.closest('.tab-close');
+    if (closeBtn) {
+      const id = closeBtn.dataset.tabId;
+      const tab = tabList().find(t => t.id === id);
+      if (!tab) return;
+      if (isDirty(tab)) {
+        showClosePopover(tab, closeBtn.closest('.tab'));
+      } else {
+        doClose(id);
+      }
+      return;
+    }
+
+    const chip = e.target.closest('.tab');
+    if (chip) {
+      const id = chip.dataset.tabId;
+      if (id === activeTabId()) return;
+      setActive(id);
+      renderBar();
+      loadActiveIntoEditor();
+      persist();
+      textArea.focus();
+    }
   });
 
-  // ---- Save ----
+  // ---- Save (active tab) ----
   saveBtn.addEventListener('click', async () => {
-    const content = textArea.value.trim();
-    if (!content) return;
-    if (isDuplicate(savesCache, content)) {
+    syncEditorToActive();
+    const tab = active();
+    const res = await saveTab(tab);
+    if (res === 'duplicate') {
       alert('A note with the same content already exists.');
       return;
     }
-    const save = makeSave(content, descInput.value.trim());
-    await addSave(save);
-    savesCache.push(save);
-    if (matchesSearch(save)) prependSaveItem(savesList, save);
-
-    textArea.value = '';
-    descInput.value = '';
-    resize();
-    saveBtn.disabled = true;
-    lastLoaded = '';
-    clearDraft();
+    if (res === 'empty') return;
+    renderBar();
+    updateSaveDisabled();
+    persist();
     textArea.focus();
   });
 
-  // ---- Clear (with undo) ----
+  // ---- Save & close all ----
+  saveCloseAllBtn.addEventListener('click', async () => {
+    closeMenu();
+    syncEditorToActive();
+    for (const tab of tabList().slice()) {
+      if (isDirty(tab)) await saveTab(tab);
+    }
+    resetToSingle();
+    renderBar();
+    loadActiveIntoEditor();
+    renderFiltered();
+    persist();
+    textArea.focus();
+  });
+
+  // ---- Clear (with undo), operates on the active tab ----
   clearBtn.addEventListener('click', () => {
     if (pendingClearState) {
       clearTimeout(pendingClearState.timeoutId);
       clearInterval(pendingClearState.intervalId);
       textArea.value = pendingClearState.originalText;
       descInput.value = pendingClearState.originalDesc;
-      autosave();
       resize();
       clearBtn.textContent = 'Clear';
       clearBtn.classList.remove('pending-clear');
-      updateSaveDisabled();
       pendingClearState = null;
+      onEdit();
       textArea.focus();
       return;
     }
@@ -124,10 +282,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const originalDesc = descInput.value;
     textArea.value = '';
     descInput.value = '';
-    lastLoaded = '';
     resize();
-    saveBtn.disabled = true;
-    autosave();
+    onEdit();
 
     let countdown = UNDO_SECONDS;
     clearBtn.classList.add('pending-clear');
@@ -148,18 +304,38 @@ document.addEventListener('DOMContentLoaded', () => {
   // ---- Search ----
   searchInput.addEventListener('input', renderFiltered);
 
-  // ---- Menu (Export / Import / Delete all) ----
+  // ---- Menus (More + per-card Open) ----
   const closeMenu = () => {
     menuList.hidden = true;
     menuBtn.setAttribute('aria-expanded', 'false');
   };
+  const closeCardMenus = except => {
+    document.querySelectorAll('.openMenu').forEach(m => {
+      if (m === except) return;
+      const lst = m.querySelector('.menu-list');
+      if (lst) lst.hidden = true;
+      const caret = m.querySelector('.splitBtn-caret');
+      if (caret) caret.setAttribute('aria-expanded', 'false');
+    });
+  };
+
   menuBtn.addEventListener('click', () => {
     const open = menuList.hidden;
     menuList.hidden = !open;
     menuBtn.setAttribute('aria-expanded', String(open));
   });
+
   document.addEventListener('click', e => {
     if (!menu.contains(e.target)) closeMenu();
+    const card = e.target.closest('.openMenu');
+    closeCardMenus(card);
+    if (
+      closePopoverEl &&
+      !closePopoverEl.contains(e.target) &&
+      !e.target.closest('.tab-close')
+    ) {
+      dismissClosePopover();
+    }
   });
 
   deleteAllBtn.addEventListener('click', async () => {
@@ -202,30 +378,48 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ---- Saves list (Switch / Delete) ----
+  // ---- Saves list (Open in new/current tab, menu, Delete) ----
   savesList.addEventListener('click', async e => {
     const btn = e.target.closest('button');
     if (!btn) return;
     const id = Number(btn.dataset.id);
     const action = btn.dataset.action;
 
-    if (action === 'load') {
+    if (action === 'open-menu') {
+      const m = btn.closest('.openMenu');
+      const lst = m.querySelector('.menu-list');
+      const willOpen = lst.hidden;
+      closeCardMenus(m);
+      lst.hidden = !willOpen;
+      btn.setAttribute('aria-expanded', String(willOpen));
+      return;
+    }
+
+    if (action === 'open-new' || action === 'open-current') {
       const save = savesCache.find(s => s.id === id);
       if (!save) return;
-      if (textArea.value && textArea.value !== lastLoaded) {
-        if (!confirm('Unsaved text will be lost. Continue?')) return;
+      closeCardMenus(null);
+      syncEditorToActive();
+
+      if (action === 'open-new') {
+        const existing = findByContent(save.content);
+        if (existing) setActive(existing.id);
+        else addTab({ description: save.description || '', content: save.content });
+      } else {
+        const act = active();
+        if (isDirty(act)) {
+          if (!confirm('Unsaved changes in this tab will be lost. Continue?')) return;
+        }
+        act.content = save.content;
+        act.description = save.description || '';
+        act.baseContent = save.content;
+        act.baseDescription = save.description || '';
       }
-      textArea.value = save.content;
-      descInput.value = save.description || '';
-      lastLoaded = save.content;
-      resize();
-      autosave();
-      updateSaveDisabled();
-      const original = btn.textContent;
-      btn.textContent = 'Loaded ✓';
-      setTimeout(() => {
-        btn.textContent = original;
-      }, 1000);
+
+      renderBar();
+      loadActiveIntoEditor();
+      persist();
+      textArea.focus();
       return;
     }
 

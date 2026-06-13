@@ -1,0 +1,210 @@
+/* Horizontal bar of open editing tabs, above the description input. */
+.tab-bar {
+  width: 100%;
+  max-width: var(--max-width);
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+/* A single tab chip — a self-contained pill, not a panel-attached browser tab. */
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+  max-width: 16rem;
+  padding: 0.35rem 0.35rem 0.35rem 0.7rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.2;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.tab:hover {
+  background: var(--border-light);
+  color: var(--text);
+}
+
+.tab-active {
+  color: var(--text);
+  font-weight: 500;
+  background: #fff;
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+}
+
+.tab-active:hover {
+  background: #fff;
+}
+
+.tab-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Trailing affordance: a dirty dot until hovered, then a × close button.
+   The button itself carries no chrome — it's just the icon target. */
+.tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.tab-close:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.tab-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.tab-x {
+  font-size: 1rem;
+  line-height: 1;
+  font-weight: 500;
+}
+
+/* Default (clean tab): show × on hover only, never a dot. */
+.tab-dot {
+  display: none;
+}
+.tab .tab-x {
+  display: none;
+}
+.tab:hover .tab-x {
+  display: inline;
+}
+
+/* Dirty tab: show the dot at rest, swap to × when hovering the chip. */
+.tab.dirty .tab-dot {
+  display: block;
+}
+.tab.dirty:hover .tab-dot {
+  display: none;
+}
+.tab.dirty:hover .tab-x {
+  display: inline;
+}
+
+/* The persistent "+" new-tab button at the end of the bar. */
+.tab-add {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  font-size: 1.15rem;
+  font-weight: 400;
+  line-height: 1;
+  background: #fff;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.tab-add:hover {
+  background: var(--border-light);
+  color: var(--text);
+}
+
+/* Split "Open" control on a saved card. */
+.splitBtn {
+  display: inline-flex;
+}
+
+.splitBtn-main {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.splitBtn-caret {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.25);
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+/* Inline "unsaved changes" popover anchored to a tab. Reuses the menu look. */
+.tab-popover {
+  position: absolute;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 12rem;
+  padding: 0.7rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  animation: menu-in 0.12s ease-out;
+}
+
+.tab-popover-msg {
+  font-size: 0.84rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.tab-popover-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.tab-popover-actions button {
+  flex: 1 1 auto;
+  font-size: 0.788rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.tab-popover-actions button[data-pop="cancel"] {
+  background: #fff;
+  color: var(--secondary);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.tab-popover-actions button[data-pop="cancel"]:hover {
+  background: var(--border-light);
+  color: var(--text);
+}
+
+.tab-popover-actions button[data-pop="discard"] {
+  background: var(--danger);
+}
+
+.tab-popover-actions button[data-pop="discard"]:hover {
+  background: var(--danger-hover);
+}
+
+/* On phones a single chip must not eat the whole row; the bar scrolls. */
+@media (max-width: 480px) {
+  .tab {
+    max-width: 11rem;
+  }
+}

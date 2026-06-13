@@ -24,20 +24,20 @@ ul#savesList {
 }
 
 .saveTitle {
-  font-size: 0.95rem;
+  font-size: 0.998rem;
   font-weight: 600;
   line-height: 1.3;
   word-break: break-word;
 }
 
 .saveMeta {
-  font-size: 0.8rem;
+  font-size: 0.84rem;
   color: var(--muted);
   opacity: 0.9;
 }
 
 .preview {
-  font-size: 0.9rem;
+  font-size: 0.945rem;
   line-height: 1.4;
   max-height: 4.2em;
   overflow: hidden;
@@ -56,7 +56,7 @@ ul#savesList {
 
 .saveActions button {
   flex: 0 0 auto;
-  font-size: 0.75rem;
+  font-size: 0.788rem;
   font-weight: 500;
   padding: 0.3rem 0.7rem;
 }
@@ -80,4 +80,40 @@ ul#savesList {
 
 .saveActions button.pending-delete {
   border-color: var(--warning);
+}
+
+/* Empty state — shown when there are no notes (or no search matches). */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  padding: 3rem 1.25rem;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.emptyState-icon {
+  color: var(--border);
+  margin-bottom: 0.25rem;
+}
+
+.emptyState-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--secondary);
+}
+
+.emptyState-hint {
+  font-size: 0.88rem;
+  line-height: 1.45;
+  max-width: 34ch;
+}
+
+.emptyState-hint strong {
+  color: var(--text);
+  font-weight: 600;
 }

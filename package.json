@@ -3,6 +3,31 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "description": "A private, offline pastebin in your browser: a big distraction-free textarea with tabs, autosave and search. Everything is stored locally — nothing leaves your device.",
+  "keywords": [
+    "pastebin",
+    "notes",
+    "offline",
+    "local-first",
+    "private",
+    "textarea",
+    "autosave",
+    "indexeddb",
+    "no-backend"
+  ],
+  "homepage": "https://mbogdan0.github.io/local-notes/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mbogdan0/local-notes.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mbogdan0/local-notes/issues"
+  },
+  "author": {
+    "name": "Bohdan Melnichenko",
+    "url": "https://mbogdan0.github.io/"
+  },
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -12,6 +37,7 @@
     "lz-string": "^1.5.0"
   },
   "devDependencies": {
+    "html-minifier-terser": "^7.2.0",
     "vite": "^5.4.0",
     "vite-plugin-singlefile": "^2.0.0"
   }
