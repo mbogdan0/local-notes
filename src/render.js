@@ -2,8 +2,8 @@ import { escapeHtml, timeAgo, formatFullDate } from './format.js';
 import { previewOf } from './saves.js';
 import { isDirty, titleOf } from './tabs.js';
 
-// Builds the inner HTML for a single save record. "Open" is a split control:
-// the main button opens the note in a new tab, the caret offers New / Current tab.
+// Builds the inner HTML for a single save record. Saved notes open as editable
+// copies so the current draft is never overwritten.
 function saveItemHtml(s) {
   const title = s.description
     ? `<div class="saveTitle">${escapeHtml(s.description)}</div>`
@@ -13,16 +13,7 @@ function saveItemHtml(s) {
     <div class="saveMeta">${timeAgo(s.date)} · ${formatFullDate(s.date)}</div>
     <div class="preview">${escapeHtml(previewOf(s.content))}</div>
     <div class="saveActions">
-      <div class="menu openMenu">
-        <div class="splitBtn">
-          <button data-id="${s.id}" data-action="open-new" class="splitBtn-main">Open</button>
-          <button data-id="${s.id}" data-action="open-menu" class="splitBtn-caret" aria-haspopup="true" aria-expanded="false" aria-label="Open options">▾</button>
-        </div>
-        <div class="menu-list" hidden>
-          <button data-id="${s.id}" data-action="open-new" type="button">New tab</button>
-          <button data-id="${s.id}" data-action="open-current" type="button">Current tab</button>
-        </div>
-      </div>
+      <button data-id="${s.id}" data-action="edit-copy" type="button">Edit copy</button>
       <button data-id="${s.id}" data-action="del" class="danger">Delete</button>
     </div>`;
 }

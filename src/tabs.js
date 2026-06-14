@@ -31,7 +31,6 @@ function makeTab(seed = {}) {
 // ---- Dirty / title helpers ----
 export function isDirty(tab) {
   if (!tab) return false;
-  if (tab.content.trim() === '') return false;
   return tab.content !== tab.baseContent || tab.description !== tab.baseDescription;
 }
 
@@ -70,14 +69,6 @@ export function add(seed) {
   tabs.push(tab);
   activeId = tab.id;
   return tab;
-}
-
-// Mark a tab as saved — its current content becomes the clean baseline.
-export function markSaved(id) {
-  const tab = tabs.find(t => t.id === id);
-  if (!tab) return;
-  tab.baseContent = tab.content;
-  tab.baseDescription = tab.description;
 }
 
 // Close a tab. If it was active, focus a neighbour (right, else left). Never leave

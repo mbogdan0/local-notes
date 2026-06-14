@@ -22,7 +22,6 @@ import {
   updateActive,
   add as addTab,
   close as closeTab,
-  markSaved,
   resetToSingle,
   isDirty,
   findByContent,
@@ -33,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const textArea = document.getElementById('mainText');
   const saveBtn = document.getElementById('saveBtn');
   const clearBtn = document.getElementById('clearBtn');
+  const saveStatus = document.getElementById('saveStatus');
   const saveCloseAllBtn = document.getElementById('saveCloseAllBtn');
   const searchInput = document.getElementById('searchInput');
   const savesList = document.getElementById('savesList');
@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const pendingDeletions = {};
   let pendingClearState = null;
   let closePopoverEl = null;
+  let saveStatusTimeout = null;
 
   // ---- Editor <-> active tab sync ----
   const renderBar = () => renderTabBar(tabBar, tabList(), activeTabId());
@@ -58,6 +59,47 @@ document.addEventListener('DOMContentLoaded', () => {
   const updateSaveDisabled = () => {
     const t = active();
     saveBtn.disabled = !t || t.content.trim() === '' || !isDirty(t);
+  };
+
+  const tabHasText = tab =>
+    Boolean(tab && (tab.content.trim() || tab.description.trim()));
+
+  const canSaveCloseAll = () => {
+    const tabs = tabList();
+    return tabs.length > 1 || tabs.some(tab => tabHasText(tab) || isDirty(tab));
+  };
+
+  const updateSaveCloseAllDisabled = () => {
+    saveCloseAllBtn.disabled = !canSaveCloseAll();
+  };
+
+  const updateActions = () => {
+    updateSaveDisabled();
+    updateSaveCloseAllDisabled();
+  };
+
+  const clearSaveStatus = () => {
+    if (saveStatusTimeout) {
+      clearTimeout(saveStatusTimeout);
+      saveStatusTimeout = null;
+    }
+    saveStatus.textContent = '';
+    saveStatus.classList.remove('is-visible');
+  };
+
+  const showSaveStatus = message => {
+    clearSaveStatus();
+    saveStatus.textContent = message;
+    saveStatus.classList.add('is-visible');
+    saveStatusTimeout = setTimeout(clearSaveStatus, 3500);
+  };
+
+  const alertSaveFailure = res => {
+    if (res === 'duplicate') {
+      alert('A note with the same content already exists.');
+    } else if (res === 'empty') {
+      alert('Add note content before saving.');
+    }
   };
 
   const resize = () => {
@@ -73,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     descInput.value = t ? t.description : '';
     textArea.value = t ? t.content : '';
     resize();
-    updateSaveDisabled();
+    updateActions();
   };
 
   // Fold the live editor values back into the active tab.
@@ -81,9 +123,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Called on every keystroke: keep the active tab + its chip in sync.
   const onEdit = () => {
+    clearSaveStatus();
     syncEditorToActive();
     refreshActiveChip(tabBar, active());
-    updateSaveDisabled();
+    updateActions();
     persist();
   };
 
@@ -106,7 +149,6 @@ document.addEventListener('DOMContentLoaded', () => {
     await addSave(save);
     savesCache.push(save);
     if (matchesSearch(save)) prependSaveItem(savesList, save);
-    markSaved(tab.id);
     return 'ok';
   };
 
@@ -145,6 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
     closeTab(id);
     renderBar();
     if (wasActive) loadActiveIntoEditor();
+    else updateActions();
     persist();
   };
 
@@ -185,7 +228,13 @@ document.addEventListener('DOMContentLoaded', () => {
         dismissClosePopover();
         return;
       }
-      if (action === 'save') await saveTab(tab);
+      if (action === 'save') {
+        const res = await saveTab(tab);
+        if (res !== 'ok') {
+          alertSaveFailure(res);
+          return;
+        }
+      }
       dismissClosePopover();
       doClose(tab.id);
     });
@@ -237,24 +286,57 @@ document.addEventListener('DOMContentLoaded', () => {
     const tab = active();
     const res = await saveTab(tab);
     if (res === 'duplicate') {
-      alert('A note with the same content already exists.');
+      alertSaveFailure(res);
       return;
     }
-    if (res === 'empty') return;
+    if (res === 'empty') {
+      alertSaveFailure(res);
+      return;
+    }
+    closeTab(tab.id);
     renderBar();
-    updateSaveDisabled();
+    loadActiveIntoEditor();
     persist();
+    showSaveStatus('Saved');
     textArea.focus();
   });
 
   // ---- Save & close all ----
   saveCloseAllBtn.addEventListener('click', async () => {
+    if (!canSaveCloseAll()) return;
     closeMenu();
     syncEditorToActive();
+    const failures = [];
+
     for (const tab of tabList().slice()) {
-      if (isDirty(tab)) await saveTab(tab);
+      if (!isDirty(tab)) {
+        closeTab(tab.id);
+        continue;
+      }
+
+      const res = await saveTab(tab);
+      if (res === 'ok') {
+        closeTab(tab.id);
+      } else {
+        failures.push(res);
+      }
     }
-    resetToSingle();
+
+    if (failures.length === 0) {
+      resetToSingle();
+      showSaveStatus('Saved');
+    } else {
+      const duplicateCount = failures.filter(res => res === 'duplicate').length;
+      const emptyCount = failures.filter(res => res === 'empty').length;
+      const reasons = [];
+      if (duplicateCount) reasons.push(`${duplicateCount} duplicate`);
+      if (emptyCount) reasons.push(`${emptyCount} without note content`);
+      alert(
+        `${failures.length} tab(s) were left open: ${reasons.join(', ')}. ` +
+          'Resolve them and try Save & close all again.'
+      );
+    }
+
     renderBar();
     loadActiveIntoEditor();
     renderFiltered();
@@ -278,8 +360,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     const originalText = textArea.value;
-    if (originalText === '') return;
     const originalDesc = descInput.value;
+    if (originalText === '' && originalDesc === '') return;
     textArea.value = '';
     descInput.value = '';
     resize();
@@ -304,22 +386,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // ---- Search ----
   searchInput.addEventListener('input', renderFiltered);
 
-  // ---- Menus (More + per-card Open) ----
+  // ---- Menu ----
   const closeMenu = () => {
     menuList.hidden = true;
     menuBtn.setAttribute('aria-expanded', 'false');
   };
-  const closeCardMenus = except => {
-    document.querySelectorAll('.openMenu').forEach(m => {
-      if (m === except) return;
-      const lst = m.querySelector('.menu-list');
-      if (lst) lst.hidden = true;
-      const caret = m.querySelector('.splitBtn-caret');
-      if (caret) caret.setAttribute('aria-expanded', 'false');
-    });
-  };
 
   menuBtn.addEventListener('click', () => {
+    updateSaveCloseAllDisabled();
     const open = menuList.hidden;
     menuList.hidden = !open;
     menuBtn.setAttribute('aria-expanded', String(open));
@@ -327,8 +401,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.addEventListener('click', e => {
     if (!menu.contains(e.target)) closeMenu();
-    const card = e.target.closest('.openMenu');
-    closeCardMenus(card);
     if (
       closePopoverEl &&
       !closePopoverEl.contains(e.target) &&
@@ -378,43 +450,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ---- Saves list (Open in new/current tab, menu, Delete) ----
+  // ---- Saves list (Edit copy / Delete) ----
   savesList.addEventListener('click', async e => {
     const btn = e.target.closest('button');
     if (!btn) return;
     const id = Number(btn.dataset.id);
     const action = btn.dataset.action;
 
-    if (action === 'open-menu') {
-      const m = btn.closest('.openMenu');
-      const lst = m.querySelector('.menu-list');
-      const willOpen = lst.hidden;
-      closeCardMenus(m);
-      lst.hidden = !willOpen;
-      btn.setAttribute('aria-expanded', String(willOpen));
-      return;
-    }
-
-    if (action === 'open-new' || action === 'open-current') {
+    if (action === 'edit-copy') {
       const save = savesCache.find(s => s.id === id);
       if (!save) return;
-      closeCardMenus(null);
       syncEditorToActive();
 
-      if (action === 'open-new') {
-        const existing = findByContent(save.content);
-        if (existing) setActive(existing.id);
-        else addTab({ description: save.description || '', content: save.content });
-      } else {
-        const act = active();
-        if (isDirty(act)) {
-          if (!confirm('Unsaved changes in this tab will be lost. Continue?')) return;
-        }
-        act.content = save.content;
-        act.description = save.description || '';
-        act.baseContent = save.content;
-        act.baseDescription = save.description || '';
-      }
+      const existing = findByContent(save.content);
+      if (existing) setActive(existing.id);
+      else addTab({ description: save.description || '', content: save.content });
 
       renderBar();
       loadActiveIntoEditor();
