@@ -13,7 +13,8 @@ function saveItemHtml(s) {
     <div class="saveMeta">${timeAgo(s.date)} · ${formatFullDate(s.date)}</div>
     <div class="preview">${escapeHtml(previewOf(s.content))}</div>
     <div class="saveActions">
-      <button data-id="${s.id}" data-action="edit-copy" type="button">Edit copy</button>
+      <button data-id="${s.id}" data-action="open-draft" type="button">Open</button>
+      <button data-id="${s.id}" data-action="copy-text" type="button">Copy</button>
       <button data-id="${s.id}" data-action="del" class="danger">Delete</button>
     </div>`;
 }

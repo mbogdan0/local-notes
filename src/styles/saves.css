@@ -61,15 +61,17 @@ ul#savesList {
   padding: 0.3rem 0.7rem;
 }
 
-/* "Edit copy" uses a quieter outline style; "Delete" stays solid danger. */
-.saveActions button[data-action='edit-copy'] {
+/* "Open" and "Copy" use a quieter outline style; "Delete" stays solid danger. */
+.saveActions button[data-action='open-draft'],
+.saveActions button[data-action='copy-text'] {
   background: #fff;
   color: var(--secondary);
   border: 1px solid var(--border);
   box-shadow: none;
 }
 
-.saveActions button[data-action='edit-copy']:hover {
+.saveActions button[data-action='open-draft']:hover,
+.saveActions button[data-action='copy-text']:hover {
   background: var(--border-light);
   color: var(--text);
 }

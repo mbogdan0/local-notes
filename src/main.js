@@ -139,6 +139,36 @@ document.addEventListener('DOMContentLoaded', () => {
   const matchesSearch = save =>
     filterSaves([save], searchInput.value).length > 0;
 
+  const copyText = async text => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+    } catch {
+      // Fall back below for browsers that block the async Clipboard API.
+    }
+
+    const focusedEl = document.activeElement;
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.top = '-9999px';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+
+    const copied = document.execCommand('copy');
+    textarea.remove();
+    if (focusedEl && typeof focusedEl.focus === 'function') {
+      focusedEl.focus({ preventScroll: true });
+    }
+    if (!copied) throw new Error('Copy command failed.');
+  };
+
   // Save a tab's content as a new record. Returns 'ok' | 'empty' | 'duplicate'.
   const saveTab = async tab => {
     if (!tab) return 'empty';
@@ -450,14 +480,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ---- Saves list (Edit copy / Delete) ----
+  // ---- Saves list (Open / Copy / Delete) ----
   savesList.addEventListener('click', async e => {
     const btn = e.target.closest('button');
     if (!btn) return;
     const id = Number(btn.dataset.id);
     const action = btn.dataset.action;
 
-    if (action === 'edit-copy') {
+    if (action === 'open-draft') {
       const save = savesCache.find(s => s.id === id);
       if (!save) return;
       syncEditorToActive();
@@ -470,6 +500,22 @@ document.addEventListener('DOMContentLoaded', () => {
       loadActiveIntoEditor();
       persist();
       textArea.focus();
+      return;
+    }
+
+    if (action === 'copy-text') {
+      const save = savesCache.find(s => s.id === id);
+      if (!save) return;
+
+      try {
+        await copyText(save.content);
+        btn.textContent = 'Copied';
+        setTimeout(() => {
+          if (btn.isConnected) btn.textContent = 'Copy';
+        }, 1200);
+      } catch {
+        alert('Could not copy note text.');
+      }
       return;
     }
 
