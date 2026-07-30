@@ -16,6 +16,9 @@ let idCounter = 0;
 
 const newId = () => `${Date.now()}-${idCounter++}`;
 
+// 'edit' shows the textarea; 'markdown' shows the rendered reading panel.
+const asView = value => (value === 'markdown' ? 'markdown' : 'edit');
+
 function makeTab(seed = {}) {
   return {
     id: newId(),
@@ -23,6 +26,7 @@ function makeTab(seed = {}) {
     content: seed.content || '',
     saveId: Number.isFinite(seed.saveId) ? seed.saveId : null,
     starred: seed.starred === true,
+    view: asView(seed.view),
   };
 }
 
@@ -120,6 +124,15 @@ export function setStarred(id, value) {
   return tab || null;
 }
 
+// ---- View mode ----
+export function setView(id, view) {
+  const tab = tabs.find(t => t.id === id);
+  if (tab) tab.view = asView(view);
+  return tab || null;
+}
+
+export const viewOf = tab => asView(tab && tab.view);
+
 // ---- Persistence ----
 // Returns false when the write was refused (quota), so callers can surface it —
 // content now lives in both localStorage and IndexedDB, and localStorage's
@@ -159,6 +172,7 @@ export function loadWorkspace() {
             description: typeof t.description === 'string' ? t.description : '',
             saveId,
             starred: t.starred === true,
+            view: asView(t.view),
           };
         });
         activeId = tabs.some(t => t.id === data.activeId)

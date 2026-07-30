@@ -123,6 +123,50 @@
   background: #fdecec;
 }
 
+/* Per-note Edit / Markdown switch, sitting just above the editor. */
+.editor-modes-row {
+  width: 100%;
+  max-width: var(--max-width);
+  margin-top: 0.75rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Shared segmented-control look (also used by the width / font toggles). */
+.segmented {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.segmented button {
+  border-radius: 0;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+  background: #fff;
+  color: var(--text);
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.segmented button:hover {
+  background: #fff;
+  opacity: 0.85;
+}
+
+.segmented button:not(:last-child) {
+  border-right: 1px solid var(--border);
+}
+
+.segmented button.active-setting,
+.segmented button.active-setting:hover {
+  opacity: 1;
+  background: var(--border-light);
+  font-weight: 500;
+}
+
 /* Segmented width / font toggles. */
 #viewControls {
   display: flex;

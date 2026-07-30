@@ -18,6 +18,7 @@ It's yours now too. Enjoy. 🎉
 - **Tabs** 🗂️ — keep several notes open at once. They wrap onto multiple rows instead of scrolling sideways, so nothing hides off the edge.
 - **Everything saves itself** ⚡ — every open tab is continuously written into your notes library. There is no "did I save this?" moment, because there is nothing to decide: closing a tab keeps the note. The workspace also gets flushed to `localStorage` every 200ms, so a refresh (or a crash, no judgement) won't eat your text either.
 - **Stars** ⭐ — mark the tabs that matter. Starred tabs sort to the front, survive **Close all tabs**, and can be filtered in the library. This is the answer to "I have 30 tabs open and no idea which ones I care about."
+- **Markdown reading view** 📖 — every note opens either in the editor or as rendered Markdown, in its own panel. GitHub-flavoured, so tables, fenced code, task lists and strikethrough all work. The mode is remembered per note; double-click the rendered page to go back to editing.
 - **Search** 🔍 — find that thing you wrote three weeks ago by a word you half-remember.
 - **Undo on Clear / Delete** ↩️ — a 5-second "wait, no" window, because we all misclick. Letting Clear's window lapse on an empty tab is also the deliberate way to throw a note away.
 - **Empty state** 🫙 — a friendly nudge when there's nothing here yet, instead of a sad blank void.
@@ -42,13 +43,20 @@ A small, dependency-light, vanilla-JS single-page app. No framework, on purpose.
 - **Vanilla JavaScript** (ES modules) — no React, no Vue, no virtual DOM. Just functions and the actual DOM.
 - **[Vite](https://vitejs.dev/)** for dev server and build.
 - **[`vite-plugin-singlefile`](https://github.com/richstokes/vite-plugin-singlefile)** — the production build inlines all CSS and JS into one self-contained `dist/index.html`. Double-click it, no server needed.
-- **[`lz-string`](https://github.com/pieroxy/lz-string)** — the only runtime dependency, used to LZ-compress the workspace before it goes into `localStorage`.
+- **[`lz-string`](https://github.com/pieroxy/lz-string)** — LZ-compresses the workspace before it goes into `localStorage`.
+- **[`marked`](https://github.com/markedjs/marked)** — renders the Markdown reading view. It is also the reason the build roughly doubled in size; for a file you open once and then use offline, that was judged a fair trade for correct GFM.
+
+Two runtime dependencies, and that is the whole list.
+
+### Markdown safety
+
+`marked` stopped sanitizing in v5, and rendered notes go straight into `innerHTML` — including notes that arrived through Import from somebody else's file. Instead of adding a sanitizer, `src/markdown.js` closes both holes at the source: the `html` renderer escapes raw HTML into literal text so it can never execute, and `link`/`image` run their URLs through a scheme **allowlist** (`http`, `https`, `mailto`, `tel`, plus relative links and anchors), stripping control characters first so `java&lt;TAB&gt;script:` cannot sneak past. Attribute values go through `escapeHtml`, so a crafted link title cannot break out of its quotes.
 
 ### Storage model
 
 Two layers, on purpose:
 
-- **Workspace (`localStorage`, LZ-compressed)** — the live set of open tabs and which one is active. A tab is `{ id, description, content, saveId, starred }`, where `saveId` links it to the note record it autosaves into. Flushed every 200ms.
+- **Workspace (`localStorage`, LZ-compressed)** — the live set of open tabs and which one is active. A tab is `{ id, description, content, saveId, starred, view }`, where `saveId` links it to the note record it autosaves into and `view` is `edit` or `markdown`. Flushed every 200ms.
 - **Saved notes (`IndexedDB`)** — the durable records (`{ id, date, updatedAt, description, content, starred }`), stored as plain text so the content stays searchable. `date` is the creation moment and never moves; `updatedAt` tracks the last write. Ordered starred-first, then most recently written.
 
 A tab and its record are 1:1. That's the whole design: because a tab always owns exactly one record, there's no "dirty" state to track, no save button that doubles as a close button, and no duplicate-content check standing between you and two tabs that happen to hold the same text. A debounced writer folds each tab into its record, serialised through a single promise chain so concurrent writes can't interleave, and reconciled on startup in case an unload beat the debounce.
@@ -64,6 +72,7 @@ src/
   tabs.js           # workspace model (open tabs, active tab, record links, stars)
   db.js             # IndexedDB wrapper for saved notes
   saves.js          # save records: ids / ordering / preview
+  markdown.js       # Markdown rendering, with raw HTML and unsafe URLs disarmed
   render.js         # DOM builders for save cards, tab chips, empty state
   search.js         # client-side filtering of saved notes
   settings.js       # width / font preferences (localStorage)

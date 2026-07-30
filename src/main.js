@@ -23,6 +23,7 @@ import {
   markOpenSaveItems,
 } from './render.js';
 import { filterSaves } from './search.js';
+import { renderMarkdown } from './markdown.js';
 import { loadSettings, applySetting } from './settings.js';
 import { exportSaves, importSaves } from './exportImport.js';
 import {
@@ -39,6 +40,8 @@ import {
   findByContent,
   findBySaveId,
   setStarred,
+  setView,
+  viewOf,
   openSaveIds,
 } from './tabs.js';
 
@@ -51,6 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const autosaveLabel = autosaveStatus.querySelector('.autosave-label');
   const autosaveAgo = autosaveStatus.querySelector('.autosave-ago');
   const docStats = document.getElementById('docStats');
+  const editorModes = document.getElementById('editorModes');
+  const markdownView = document.getElementById('markdownView');
   const closeAllBtn = document.getElementById('closeAllBtn');
   const searchInput = document.getElementById('searchInput');
   const starFilterBtn = document.getElementById('starFilterBtn');
@@ -243,14 +248,46 @@ document.addEventListener('DOMContentLoaded', () => {
     window.scrollTo(window.scrollX, scrollPos);
   };
 
+  // Show either the textarea or the rendered reading panel, per the active
+  // tab's own mode. The panel is read-only; content only ever changes in Edit.
+  const applyViewMode = () => {
+    const tab = active();
+    const mode = viewOf(tab);
+    const reading = mode === 'markdown';
+
+    textArea.hidden = reading;
+    markdownView.hidden = !reading;
+
+    if (reading) {
+      const html = renderMarkdown(tab ? tab.content : '');
+      markdownView.innerHTML =
+        html.trim() ||
+        '<p class="markdown-empty">Nothing to read yet — switch to Edit and start typing.</p>';
+    } else {
+      // scrollHeight reads 0 while the textarea is hidden, so its height has to
+      // be re-measured on the way back rather than trusted from before.
+      resize();
+    }
+
+    editorModes.querySelectorAll('button').forEach(btn => {
+      const on = btn.dataset.view === mode;
+      btn.classList.toggle('active-setting', on);
+      btn.setAttribute('aria-pressed', String(on));
+    });
+  };
+
   // Load the active tab's buffer into the editor fields.
   const loadActiveIntoEditor = () => {
     const t = active();
     descInput.value = t ? t.description : '';
     textArea.value = t ? t.content : '';
-    resize();
+    applyViewMode();
     updateDocStats();
     updateActions();
+  };
+
+  const focusEditor = () => {
+    if (!textArea.hidden) textArea.focus();
   };
 
   // Fold the live editor values back into the active tab.
@@ -397,6 +434,9 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshChip(active());
     updateDocStats();
     updateActions();
+    // The textarea is hidden in reading mode, but Clear and its Undo still
+    // change the content from underneath it — so the panel has to re-render.
+    if (!markdownView.hidden) applyViewMode();
     persistWorkspace();
   };
 
@@ -469,6 +509,39 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!copied) throw new Error('Copy command failed.');
   };
 
+  // Open a saved note in a tab, in the requested view. Re-uses the tab that
+  // already holds it rather than opening a second copy.
+  const openSave = (save, view) => {
+    syncEditorToActive();
+
+    const existing = findBySaveId(save.id) || findByContent(save.content);
+    let tab;
+    if (existing) {
+      // Matched by content rather than by link: adopt the record so editing
+      // updates it instead of spawning a near-duplicate alongside it. Only ever
+      // fill an empty link — never steal one from another record.
+      if (existing.saveId == null) {
+        existing.saveId = save.id;
+        if (save.starred) existing.starred = true;
+      }
+      setActive(existing.id);
+      tab = existing;
+    } else {
+      tab = addTab({
+        description: save.description || '',
+        content: save.content,
+        saveId: save.id,
+        starred: save.starred === true,
+      });
+    }
+
+    setView(tab.id, view);
+    renderBar();
+    loadActiveIntoEditor();
+    persistWorkspace();
+    focusEditor();
+  };
+
   // Drop a record and unlink whatever tab pointed at it.
   const forgetRecord = async id => {
     await deleteSave(id);
@@ -521,6 +594,31 @@ document.addEventListener('DOMContentLoaded', () => {
   textArea.addEventListener('blur', () => flushTab(activeTabId()));
   descInput.addEventListener('blur', () => flushTab(activeTabId()));
 
+  // ---- View mode (per note) ----
+  const switchView = view => {
+    const tab = active();
+    if (!tab || viewOf(tab) === view) return;
+    // Capture whatever is in the textarea before it goes away, or switching to
+    // the reading panel would render the previous keystroke's text.
+    syncEditorToActive();
+    setView(tab.id, view);
+    applyViewMode();
+    persistWorkspace();
+    if (view === 'edit') focusEditor();
+  };
+
+  editorModes.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (btn) switchView(btn.dataset.view);
+  });
+
+  // Double-click, not single: a single click has to stay available for
+  // selecting and copying text out of the rendered note.
+  markdownView.addEventListener('dblclick', e => {
+    if (e.target.closest('a')) return; // let a link be a link
+    switchView('edit');
+  });
+
   // A write can't be awaited during unload; the 200ms localStorage flush plus
   // startup reconciliation is what actually closes that gap.
   document.addEventListener('visibilitychange', () => {
@@ -555,7 +653,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderBar();
       loadActiveIntoEditor();
       persistWorkspace();
-      textArea.focus();
+      focusEditor();
       return;
     }
 
@@ -589,7 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderBar();
       loadActiveIntoEditor();
       persistWorkspace();
-      textArea.focus();
+      focusEditor();
     }
   });
 
@@ -610,7 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
   doneBtn.addEventListener('click', async () => {
     syncEditorToActive();
     await doClose(activeTabId());
-    textArea.focus();
+    focusEditor();
   });
 
   // ---- Close all tabs (starred ones stay) ----
@@ -628,7 +726,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderBar();
     loadActiveIntoEditor();
     persistWorkspace();
-    textArea.focus();
+    focusEditor();
   });
 
   // ---- Clear (with undo), operates on the active tab ----
@@ -643,7 +741,7 @@ document.addEventListener('DOMContentLoaded', () => {
       clearBtn.classList.remove('pending-clear');
       pendingClearState = null;
       onEdit();
-      textArea.focus();
+      focusEditor();
       return;
     }
     const originalText = textArea.value;
@@ -724,7 +822,7 @@ document.addEventListener('DOMContentLoaded', () => {
     persistWorkspace();
     renderFiltered();
     renderBar();
-    textArea.focus();
+    focusEditor();
   });
 
   exportBtn.addEventListener('click', async () => {
@@ -769,33 +867,10 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    if (action === 'open-draft') {
+    if (action === 'open-draft' || action === 'open-markdown') {
       const save = savesCache.find(s => s.id === id);
       if (!save) return;
-      syncEditorToActive();
-
-      const existing = findBySaveId(save.id) || findByContent(save.content);
-      if (existing) {
-        // Matched by content rather than by link: adopt the record so editing
-        // updates it instead of spawning a near-duplicate alongside it. Only
-        // ever fill an empty link — never steal one from another record.
-        if (existing.saveId == null) {
-          existing.saveId = save.id;
-          if (save.starred) existing.starred = true;
-        }
-        setActive(existing.id);
-      } else
-        addTab({
-          description: save.description || '',
-          content: save.content,
-          saveId: save.id,
-          starred: save.starred === true,
-        });
-
-      renderBar();
-      loadActiveIntoEditor();
-      persistWorkspace();
-      textArea.focus();
+      openSave(save, action === 'open-markdown' ? 'markdown' : 'edit');
       return;
     }
 

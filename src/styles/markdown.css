@@ -1,0 +1,196 @@
+/* The reading panel: same footprint as the textarea so switching modes doesn't
+   shift the page, but typeset as prose rather than as an editor buffer. */
+.markdown-view {
+  width: 100%;
+  max-width: var(--max-width);
+  min-height: 500px;
+  margin-top: 0.75rem;
+  padding: 1.4rem 1.6rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--shadow);
+  /* Deliberately not var(--editor-font): the Sans/Mono switch is an editor
+     preference, and monospace headings and tables read badly. */
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--text);
+  overflow-wrap: break-word;
+  cursor: text;
+}
+
+.markdown-view[hidden] {
+  display: none;
+}
+
+.markdown-empty {
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+/* ---- Block rhythm ---- */
+.markdown-view > *:first-child {
+  margin-top: 0;
+}
+
+.markdown-view p,
+.markdown-view ul,
+.markdown-view ol,
+.markdown-view pre,
+.markdown-view blockquote,
+.markdown-view table {
+  margin: 0 0 1rem;
+}
+
+.markdown-view h1,
+.markdown-view h2,
+.markdown-view h3,
+.markdown-view h4,
+.markdown-view h5,
+.markdown-view h6 {
+  margin: 1.6rem 0 0.6rem;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.markdown-view h1 {
+  font-size: 1.7rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border-light);
+}
+.markdown-view h2 {
+  font-size: 1.4rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border-light);
+}
+.markdown-view h3 {
+  font-size: 1.2rem;
+}
+.markdown-view h4 {
+  font-size: 1.05rem;
+}
+.markdown-view h5,
+.markdown-view h6 {
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+/* ---- Inline ---- */
+.markdown-view a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.markdown-view a:hover {
+  text-decoration: underline;
+}
+
+.markdown-view strong {
+  font-weight: 600;
+}
+
+.markdown-view del {
+  color: var(--muted);
+}
+
+.markdown-view hr {
+  height: 1px;
+  margin: 1.6rem 0;
+  border: 0;
+  background: var(--border);
+}
+
+.markdown-view img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+/* ---- Code ---- */
+.markdown-view code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9em;
+  padding: 0.12em 0.35em;
+  border-radius: 4px;
+  background: var(--border-light);
+}
+
+.markdown-view pre {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  background: #f7f8f8;
+  overflow-x: auto;
+}
+
+.markdown-view pre code {
+  padding: 0;
+  background: none;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* ---- Lists ---- */
+.markdown-view ul,
+.markdown-view ol {
+  padding-left: 1.5rem;
+}
+
+.markdown-view li + li {
+  margin-top: 0.25rem;
+}
+
+.markdown-view li > ul,
+.markdown-view li > ol {
+  margin: 0.25rem 0 0;
+}
+
+/* GFM task lists render as disabled checkboxes; drop the bullet beside them. */
+.markdown-view li:has(> input[type='checkbox']) {
+  list-style: none;
+  margin-left: -1.25rem;
+}
+
+.markdown-view input[type='checkbox'] {
+  margin-right: 0.45rem;
+  accent-color: var(--primary);
+}
+
+/* ---- Quote ---- */
+.markdown-view blockquote {
+  padding: 0.1rem 0 0.1rem 0.9rem;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+
+.markdown-view blockquote > *:last-child {
+  margin-bottom: 0;
+}
+
+/* ---- Tables ---- */
+.markdown-view table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.94rem;
+  display: block;
+  overflow-x: auto;
+}
+
+.markdown-view th,
+.markdown-view td {
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--border-light);
+  text-align: left;
+}
+
+.markdown-view th {
+  background: var(--border-light);
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .markdown-view {
+    padding: 1rem 1.05rem;
+  }
+}

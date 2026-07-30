@@ -31,6 +31,7 @@ function saveItemHtml(s) {
     <div class="saveActions">
       <button data-id="${s.id}" data-action="star" class="star-btn" type="button" aria-pressed="${s.starred ? 'true' : 'false'}" aria-label="Star note">${starIcon(s.starred)}</button>
       <button data-id="${s.id}" data-action="open-draft" type="button">Open</button>
+      <button data-id="${s.id}" data-action="open-markdown" type="button">Markdown</button>
       <button data-id="${s.id}" data-action="copy-text" type="button">Copy</button>
       <button data-id="${s.id}" data-action="del" class="danger">Delete</button>
     </div>`;
