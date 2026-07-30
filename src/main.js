@@ -306,8 +306,22 @@ document.addEventListener('DOMContentLoaded', () => {
     updateActions();
   };
 
+  // preventScroll because the browser would otherwise jump the tall textarea
+  // into view abruptly — scrollToNoteStart owns that movement instead.
   const focusEditor = () => {
-    if (!textArea.hidden) textArea.focus();
+    if (!textArea.hidden) textArea.focus({ preventScroll: true });
+  };
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  // Switching to a note while scrolled down through the library would leave its
+  // first lines above the fold. Bring the top of the page back into view.
+  const scrollToNoteStart = () => {
+    if (window.scrollY === 0) return; // already there; don't fight the user
+    window.scrollTo({
+      top: 0,
+      behavior: reducedMotion.matches ? 'auto' : 'smooth',
+    });
   };
 
   // Fold the live editor values back into the active tab.
@@ -560,6 +574,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loadActiveIntoEditor();
     persistWorkspace();
     focusEditor();
+    // Opened from the library, so the reader is far down the page.
+    scrollToNoteStart();
   };
 
   // Drop a record and unlink whatever tab pointed at it.
@@ -660,7 +676,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const wasActive = id === activeTabId();
     closeTab(id);
     renderBar();
-    if (wasActive) loadActiveIntoEditor();
+    if (wasActive) {
+      loadActiveIntoEditor();
+      scrollToNoteStart(); // a different note is in the editor now
+    }
     persistWorkspace();
   };
 
@@ -674,6 +693,7 @@ document.addEventListener('DOMContentLoaded', () => {
       loadActiveIntoEditor();
       persistWorkspace();
       focusEditor();
+      scrollToNoteStart();
       return;
     }
 
@@ -708,6 +728,7 @@ document.addEventListener('DOMContentLoaded', () => {
       loadActiveIntoEditor();
       persistWorkspace();
       focusEditor();
+      scrollToNoteStart();
     }
   });
 
@@ -747,6 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadActiveIntoEditor();
     persistWorkspace();
     focusEditor();
+    scrollToNoteStart();
   });
 
   // ---- Clear (with undo), operates on the active tab ----
