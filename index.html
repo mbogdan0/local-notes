@@ -76,11 +76,12 @@
         <div class="controls-left">
             <button id="doneBtn" disabled>Done</button>
             <button id="clearBtn">Clear</button>
-            <button id="closeAllBtn" type="button" title="Closes every tab except starred ones. Your notes stay in the library below.">Close all tabs</button>
+            <button id="closeAllBtn" type="button" title="Closes every open tab. Your notes stay in the library below — nothing is lost.">Close all tabs</button>
 
             <div id="menu" class="menu">
                 <button id="menuBtn" type="button" aria-haspopup="true" aria-expanded="false">More ▾</button>
                 <div id="menuList" class="menu-list" hidden>
+                    <button id="closeUnstarredBtn" type="button" title="Closes every tab except the starred ones.">Close unstarred</button>
                     <button id="exportBtn" type="button">Export</button>
                     <button id="importBtn" type="button">Import</button>
                     <button id="deleteUnstarredBtn" type="button" class="menu-danger">Delete unstarred</button>

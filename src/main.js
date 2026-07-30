@@ -63,6 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const editorModes = document.getElementById('editorModes');
   const markdownView = document.getElementById('markdownView');
   const closeAllBtn = document.getElementById('closeAllBtn');
+  const closeUnstarredBtn = document.getElementById('closeUnstarredBtn');
   const searchInput = document.getElementById('searchInput');
   const starFilterBtn = document.getElementById('starFilterBtn');
   const savesList = document.getElementById('savesList');
@@ -221,13 +222,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const tabHasText = tab =>
     Boolean(tab && (tab.content.trim() || tab.description.trim()));
 
+  // Nothing to sweep when the workspace is already just one blank tab.
+  const workspaceIsBlank = () => {
+    const tabs = rawList();
+    return tabs.length === 1 && !tabHasText(tabs[0]);
+  };
+
   const updateActions = () => {
     const tabs = rawList();
     // "Done" files the current tab away; pointless when the only tab is blank.
     doneBtn.disabled = tabs.length <= 1 && !tabHasText(active());
-    const closable = tabs.filter(t => !t.starred);
-    closeAllBtn.disabled =
-      closable.length === 0 || (tabs.length === 1 && !tabHasText(tabs[0]));
+    closeAllBtn.disabled = workspaceIsBlank();
   };
 
   const unstarredSaves = () => savesCache.filter(s => !s.starred);
@@ -235,12 +240,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Menu-only state. Kept out of updateActions because that runs on every
   // keystroke and this walks the whole library; the menu is opened deliberately.
   const updateMenuActions = () => {
-    const count = unstarredSaves().length;
-    deleteUnstarredBtn.disabled = count === 0;
-    deleteUnstarredBtn.textContent = count
-      ? `Delete unstarred (${count})`
+    const notes = unstarredSaves().length;
+    deleteUnstarredBtn.disabled = notes === 0;
+    deleteUnstarredBtn.textContent = notes
+      ? `Delete unstarred (${notes})`
       : 'Delete unstarred';
     deleteAllBtn.disabled = savesCache.length === 0;
+
+    const tabs = rawList().filter(t => !t.starred).length;
+    closeUnstarredBtn.disabled = tabs === 0 || workspaceIsBlank();
+    closeUnstarredBtn.textContent = tabs
+      ? `Close unstarred (${tabs})`
+      : 'Close unstarred';
   };
 
   const updateDocStats = () => {
@@ -752,13 +763,15 @@ document.addEventListener('DOMContentLoaded', () => {
     focusEditor();
   });
 
-  // ---- Close all tabs (starred ones stay) ----
-  closeAllBtn.addEventListener('click', async () => {
+  // ---- Bulk close ----
+  // Closing a tab loses nothing: its note is already in the library, and the
+  // star lives on the record too, so a closed starred note reopens starred.
+  const closeTabsExcept = async keep => {
     syncEditorToActive();
     await flushAll();
 
     for (const tab of rawList().slice()) {
-      if (tab.starred) continue;
+      if (keep(tab)) continue;
       cancelAutosave(tab.id);
       closeTab(tab.id);
     }
@@ -769,6 +782,16 @@ document.addEventListener('DOMContentLoaded', () => {
     persistWorkspace();
     focusEditor();
     scrollToNoteStart();
+  };
+
+  // Means all of them. A button labelled "Close all tabs" that quietly spared
+  // some was just a lie, and it went disabled afterwards so a second click did
+  // nothing at all.
+  closeAllBtn.addEventListener('click', () => closeTabsExcept(() => false));
+
+  closeUnstarredBtn.addEventListener('click', () => {
+    closeMenu();
+    closeTabsExcept(tab => tab.starred);
   });
 
   // ---- Clear (with undo), operates on the active tab ----
