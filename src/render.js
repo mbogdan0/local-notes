@@ -5,7 +5,20 @@ import { titleOf } from './tabs.js';
 
 // ---- Saved notes ----
 
-const starGlyph = starred => (starred ? '★' : '☆');
+// An inline SVG rather than the ★/☆ characters: those fall back to a symbol or
+// emoji font when the UI font lacks them, which lands them off the baseline and
+// at the wrong size. A path is identical everywhere and scales exactly.
+const starIcon = (filled, size = 14) =>
+  `<svg class="star-icon" viewBox="0 0 24 24" width="${size}" height="${size}" fill="${
+    filled ? 'currentColor' : 'none'
+  }" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg>`;
+
+// Swaps an existing star button's icon in place.
+const setStarIcon = (btn, filled) => {
+  const svg = btn.querySelector('.star-icon');
+  if (svg) svg.setAttribute('fill', filled ? 'currentColor' : 'none');
+  btn.setAttribute('aria-pressed', filled ? 'true' : 'false');
+};
 
 // The title div is always emitted (hidden when there is no description) so that
 // updating a card in place never has to create or destroy nodes.
@@ -16,7 +29,7 @@ function saveItemHtml(s) {
     <div class="preview">${escapeHtml(previewOf(s.content))}</div>
     <div class="saveOpenBadge" hidden>Open in a tab</div>
     <div class="saveActions">
-      <button data-id="${s.id}" data-action="star" class="star-btn" type="button" aria-pressed="${s.starred ? 'true' : 'false'}" aria-label="Star note">${starGlyph(s.starred)}</button>
+      <button data-id="${s.id}" data-action="star" class="star-btn" type="button" aria-pressed="${s.starred ? 'true' : 'false'}" aria-label="Star note">${starIcon(s.starred)}</button>
       <button data-id="${s.id}" data-action="open-draft" type="button">Open</button>
       <button data-id="${s.id}" data-action="copy-text" type="button">Copy</button>
       <button data-id="${s.id}" data-action="del" class="danger">Delete</button>
@@ -52,7 +65,7 @@ function emptyStateHtml({ hasQuery = false, starredOnly = false } = {}) {
   if (starredOnly) {
     return `
       <li class="emptyState">
-        <div class="emptyState-icon emptyState-star" aria-hidden="true">☆</div>
+        <div class="emptyState-icon">${starIcon(false, 40)}</div>
         <div class="emptyState-title">Nothing starred yet</div>
         <div class="emptyState-hint">Star a tab or a note to keep the important ones at the top.</div>
       </li>`;
@@ -111,10 +124,7 @@ export function updateSaveItem(listEl, save) {
   if (preview) preview.textContent = previewOf(save.content);
 
   const star = li.querySelector('.star-btn');
-  if (star) {
-    star.textContent = starGlyph(save.starred);
-    star.setAttribute('aria-pressed', save.starred ? 'true' : 'false');
-  }
+  if (star) setStarIcon(star, save.starred === true);
 
   return true;
 }
@@ -171,7 +181,7 @@ function tabChipHtml(tab, activeId, pendingIds) {
     (pendingIds.has(tab.id) ? ' pending' : '');
   return `
     <div class="${cls}" data-tab-id="${tab.id}" role="tab" aria-selected="${isActive}" title="${escapeHtml(title)}">
-      <button class="tab-star" data-tab-id="${tab.id}" data-action="star" type="button" aria-pressed="${tab.starred ? 'true' : 'false'}" aria-label="Star tab">${starGlyph(tab.starred)}</button>
+      <button class="tab-star" data-tab-id="${tab.id}" data-action="star" type="button" aria-pressed="${tab.starred ? 'true' : 'false'}" aria-label="Star tab">${starIcon(tab.starred, 13)}</button>
       <span class="tab-title">${escapeHtml(title)}</span>
       <button class="tab-close" data-tab-id="${tab.id}" data-action="close" type="button" aria-label="Close tab">
         <span class="tab-dot"></span><span class="tab-x">×</span>

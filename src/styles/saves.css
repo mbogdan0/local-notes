@@ -76,14 +76,17 @@ ul#savesList {
 /* The star sits apart from the Open/Copy/Delete cluster. */
 .star-btn {
   margin-right: auto;
-  width: 1.75rem;
-  padding: 0.3rem 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.7rem;
+  padding: 0;
   background: #fff;
   color: var(--muted);
   border: 1px solid var(--border);
   box-shadow: none;
-  font-size: 0.9rem;
-  line-height: 1;
+  line-height: 0;
 }
 
 .star-btn:hover {
@@ -147,9 +150,7 @@ ul#savesList {
   margin-bottom: 0.25rem;
 }
 
-.emptyState-star {
-  font-size: 2.5rem;
-  line-height: 1;
+.emptyState-icon .star-icon {
   color: var(--star-border);
 }
 

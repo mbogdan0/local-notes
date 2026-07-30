@@ -44,6 +44,13 @@ body {
   font-feature-settings: 'liga' 0;
 }
 
+/* Star glyphs are SVG, never text — a font fallback would sit off the baseline.
+   `display: block` keeps them off the text baseline inside flex buttons. */
+.star-icon {
+  display: block;
+  flex: 0 0 auto;
+}
+
 /* Visible to screen readers and crawlers, hidden from sighted users. */
 .visually-hidden {
   position: absolute;

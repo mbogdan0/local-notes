@@ -1,5 +1,5 @@
 #controls {
-  margin-top: 3rem;
+  margin-top: 1.25rem;
   width: 100%;
   max-width: var(--max-width);
   display: flex;
@@ -13,6 +13,20 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* Meta line under the editor: counts on the left, autosave state on the right.
+   Kept out of the button row so a changing "Saved · 19m ago" can never shove the
+   buttons sideways, and reserved a fixed height so nothing jumps when empty. */
+.editor-meta {
+  width: 100%;
+  max-width: var(--max-width);
+  margin-top: 0.4rem;
+  min-height: 1.15rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
 }
 
 /* Autosave state, shown inline and permanently rather than as a toast — the

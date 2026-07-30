@@ -123,6 +123,14 @@ document.addEventListener('DOMContentLoaded', () => {
     renderStatus();
   };
 
+  // Return the indicator to rest. Needed because a scheduled write can end up
+  // doing nothing (an emptied tab), which would otherwise strand it on "Saving…"
+  // forever. Stays put while any other tab still has a write queued.
+  const settleStatus = () => {
+    if (pendingWrites.size > 0) return;
+    setAutosaveState(lastSavedAt ? 'saved' : 'idle');
+  };
+
   // A one-off message that briefly takes over the indicator.
   const flashStatus = message => {
     clearTimeout(statusNoticeTimeout);
@@ -259,10 +267,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tab.content.trim() === '') {
       // An empty tab never creates a record — and never destroys the one it
       // already has, so select-all-delete-then-retype can't lose the note.
+      settleStatus();
       refreshChip(tab);
       return;
     }
-    if (Date.now() < autosaveErrorUntil) return;
+    if (Date.now() < autosaveErrorUntil) {
+      // Re-arm rather than drop the edit: otherwise the indicator would claim
+      // it is retrying while in fact nothing ever retried.
+      retryAfterBackoff(tabId);
+      return;
+    }
 
     // Claim the id synchronously, before any await: a concurrent call must see
     // a non-null saveId or it would mint a second record for the same tab.
@@ -287,6 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isNew) tab.saveId = null; // roll the claim back
       autosaveErrorUntil = Date.now() + AUTOSAVE_ERROR_BACKOFF;
       setAutosaveState('error');
+      retryAfterBackoff(tabId); // or "retrying" would be a lie
       return;
     }
 
@@ -300,10 +315,23 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshChip(tab);
   }
 
-  const enqueue = tabId => {
-    writeChain = writeChain.then(() => writeTab(tabId)).catch(() => {});
+  // Every IndexedDB write goes through this one chain, so writes can never
+  // interleave and a later one can't land before an earlier one.
+  const queueWrite = task => {
+    writeChain = writeChain.then(task).catch(() => {});
     return writeChain;
   };
+
+  const enqueue = tabId => queueWrite(() => writeTab(tabId));
+
+  // Wait out the remaining backoff, then try this tab again.
+  function retryAfterBackoff(tabId) {
+    const entry = pendingWrites.get(tabId) || {};
+    clearTimeout(entry.timer);
+    const wait = Math.max(250, autosaveErrorUntil - Date.now() + 50);
+    entry.timer = setTimeout(() => enqueue(tabId), wait);
+    pendingWrites.set(tabId, entry);
+  }
 
   function scheduleAutosave(tabId) {
     if (!tabId) return;
@@ -329,8 +357,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // Flush means "fire an armed timer early" — never "write unconditionally".
   // That distinction is what stops Delete-all from instantly repopulating the
   // library out of the still-open tabs.
-  const flushTab = tabId =>
-    pendingWrites.has(tabId) ? enqueue(tabId) : Promise.resolve();
+  const flushTab = tabId => {
+    if (!pendingWrites.has(tabId)) return Promise.resolve();
+    // Disarm synchronously so the timer can't fire a duplicate write behind
+    // the one we are about to queue.
+    cancelAutosave(tabId);
+    return enqueue(tabId);
+  };
   const flushAll = () =>
     Promise.all([...pendingWrites.keys()].map(id => flushTab(id)));
 
@@ -375,11 +408,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const record = saveId != null ? savesCache.find(s => s.id === saveId) : null;
     if (record) {
       record.starred = value;
-      try {
-        await addSave(record);
-      } catch {
-        setAutosaveState('error');
-      }
+      // Must share the autosave chain. A queued tab write mutates this same
+      // cached object, so an unsynchronised put here could land after it and
+      // write the pre-edit text back over the newer one.
+      await queueWrite(async () => {
+        const fresh = savesCache.find(s => s.id === saveId);
+        if (!fresh) return;
+        try {
+          await addSave(fresh);
+        } catch {
+          setAutosaveState('error');
+        }
+      });
     }
 
     renderBar(); // starring reorders the bar
@@ -575,7 +615,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ---- Close all tabs (starred ones stay) ----
   closeAllBtn.addEventListener('click', async () => {
-    closeMenu();
     syncEditorToActive();
     await flushAll();
 
@@ -736,8 +775,16 @@ document.addEventListener('DOMContentLoaded', () => {
       syncEditorToActive();
 
       const existing = findBySaveId(save.id) || findByContent(save.content);
-      if (existing) setActive(existing.id);
-      else
+      if (existing) {
+        // Matched by content rather than by link: adopt the record so editing
+        // updates it instead of spawning a near-duplicate alongside it. Only
+        // ever fill an empty link — never steal one from another record.
+        if (existing.saveId == null) {
+          existing.saveId = save.id;
+          if (save.starred) existing.starred = true;
+        }
+        setActive(existing.id);
+      } else
         addTab({
           description: save.description || '',
           content: save.content,

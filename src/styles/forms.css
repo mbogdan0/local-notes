@@ -83,6 +83,9 @@
    and read as data loss. */
 #starFilterBtn {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.5rem 0.8rem;
   font-size: 0.875rem;
   background: #fff;
@@ -90,6 +93,10 @@
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
   white-space: nowrap;
+}
+
+#starFilterBtn.is-active .star-icon {
+  fill: currentColor;
 }
 
 #starFilterBtn:hover {

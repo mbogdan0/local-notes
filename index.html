@@ -56,19 +56,22 @@
     <input id="descInput" type="text" placeholder="Short description (optional)" autocomplete="off" />
     <textarea id="mainText" placeholder="Start typing…"></textarea>
 
+    <div id="editorMeta" class="editor-meta">
+        <span id="docStats" class="doc-stats" aria-hidden="true"></span>
+        <span id="autosaveStatus" class="autosave-status is-idle" role="status" aria-live="polite">
+            <span class="autosave-label"></span><span class="autosave-ago" aria-hidden="true"></span>
+        </span>
+    </div>
+
     <div id="controls">
         <div class="controls-left">
             <button id="doneBtn" disabled>Done</button>
             <button id="clearBtn">Clear</button>
-            <span id="autosaveStatus" class="autosave-status is-idle" role="status" aria-live="polite">
-                <span class="autosave-label"></span><span class="autosave-ago" aria-hidden="true"></span>
-            </span>
-            <span id="docStats" class="doc-stats" aria-hidden="true"></span>
+            <button id="closeAllBtn" type="button" title="Closes every tab except starred ones. Your notes stay in the library below.">Close all tabs</button>
 
             <div id="menu" class="menu">
                 <button id="menuBtn" type="button" aria-haspopup="true" aria-expanded="false">More ▾</button>
                 <div id="menuList" class="menu-list" hidden>
-                    <button id="closeAllBtn" type="button">Close all tabs</button>
                     <button id="exportBtn" type="button">Export</button>
                     <button id="importBtn" type="button">Import</button>
                     <button id="deleteAllBtn" type="button" class="menu-danger">Delete all</button>
@@ -91,7 +94,12 @@
 
     <div id="searchRow">
         <input id="searchInput" type="search" placeholder="Search saved notes…" autocomplete="off" />
-        <button id="starFilterBtn" type="button" aria-pressed="false">☆ Starred only</button>
+        <button id="starFilterBtn" type="button" aria-pressed="false"><svg class="star-icon" viewBox="0 0 24 24"
+                width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"
+                aria-hidden="true">
+                <polygon
+                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26" />
+            </svg>Starred only</button>
     </div>
 
     <ul id="savesList"></ul>
