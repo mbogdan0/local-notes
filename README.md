@@ -15,11 +15,11 @@ It's yours now too. Enjoy. 🎉
 ## What it does ✨
 
 - **One big textarea** that grows as you type — the whole point.
-- **Tabs** 🗂️ — keep several notes open at once, each with its own little "you have unsaved changes" dot that quietly judges you.
-- **Autosave** ⚡ — your in-progress workspace is flushed to `localStorage` every 200ms, so a refresh (or a crash, no judgement) won't eat your text.
-- **Save notes** 💾 — promote a tab to a saved record, stored in IndexedDB and searchable.
+- **Tabs** 🗂️ — keep several notes open at once. They wrap onto multiple rows instead of scrolling sideways, so nothing hides off the edge.
+- **Everything saves itself** ⚡ — every open tab is continuously written into your notes library. There is no "did I save this?" moment, because there is nothing to decide: closing a tab keeps the note. The workspace also gets flushed to `localStorage` every 200ms, so a refresh (or a crash, no judgement) won't eat your text either.
+- **Stars** ⭐ — mark the tabs that matter. Starred tabs sort to the front, survive **Close all tabs**, and can be filtered in the library. This is the answer to "I have 30 tabs open and no idea which ones I care about."
 - **Search** 🔍 — find that thing you wrote three weeks ago by a word you half-remember.
-- **Undo on Clear / Delete** ↩️ — a 5-second "wait, no" window, because we all misclick.
+- **Undo on Clear / Delete** ↩️ — a 5-second "wait, no" window, because we all misclick. Letting Clear's window lapse on an empty tab is also the deliberate way to throw a note away.
 - **Empty state** 🫙 — a friendly nudge when there's nothing here yet, instead of a sad blank void.
 - **Export / Import** 📦 — your notes as JSON, to back up or move between browsers.
 - **Width & font toggles** — narrow/wide, sans/mono. Small comforts.
@@ -48,8 +48,10 @@ A small, dependency-light, vanilla-JS single-page app. No framework, on purpose.
 
 Two layers, on purpose:
 
-- **Workspace (`localStorage`, LZ-compressed)** — the live set of open tabs and which one is active. This is the *ephemeral* editing state, autosaved every 200ms. A tab tracks a `base*` snapshot of its last-saved content so it can tell when it's "dirty".
-- **Saved notes (`IndexedDB`)** — the durable records (`{ id, date, description, content }`), stored as plain text so the content stays searchable. Sorted oldest → newest and prepended into the list so the newest sits on top.
+- **Workspace (`localStorage`, LZ-compressed)** — the live set of open tabs and which one is active. A tab is `{ id, description, content, saveId, starred }`, where `saveId` links it to the note record it autosaves into. Flushed every 200ms.
+- **Saved notes (`IndexedDB`)** — the durable records (`{ id, date, updatedAt, description, content, starred }`), stored as plain text so the content stays searchable. `date` is the creation moment and never moves; `updatedAt` tracks the last write. Ordered starred-first, then most recently written.
+
+A tab and its record are 1:1. That's the whole design: because a tab always owns exactly one record, there's no "dirty" state to track, no save button that doubles as a close button, and no duplicate-content check standing between you and two tabs that happen to hold the same text. A debounced writer folds each tab into its record, serialised through a single promise chain so concurrent writes can't interleave, and reconciled on startup in case an unload beat the debounce.
 
 `src/db.js` is a thin promise-based wrapper over IndexedDB; nothing fancy, just `getAll` / `put` / `delete` / `clear`.
 
@@ -58,10 +60,10 @@ Two layers, on purpose:
 ```
 index.html          # markup + SEO meta + a visually-hidden semantic header
 src/
-  main.js           # wiring: editor ⇆ tabs, event handlers, app lifecycle
-  tabs.js           # workspace model (open tabs, active tab, dirty tracking)
+  main.js           # wiring: editor ⇆ tabs, autosave engine, event handlers
+  tabs.js           # workspace model (open tabs, active tab, record links, stars)
   db.js             # IndexedDB wrapper for saved notes
-  saves.js          # save records: make / dedupe / preview
+  saves.js          # save records: ids / ordering / preview
   render.js         # DOM builders for save cards, tab chips, empty state
   search.js         # client-side filtering of saved notes
   settings.js       # width / font preferences (localStorage)
