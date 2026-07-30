@@ -69,15 +69,44 @@
   border-color: var(--primary);
 }
 
-/* Full-text search field above the saved notes. */
+/* Full-text search field above the saved notes, plus the starred filter. */
 #searchRow {
   width: 100%;
   max-width: var(--max-width);
   margin-top: 1.5rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+/* Session-only filter: a sticky one would hide the whole library on next load
+   and read as data loss. */
+#starFilterBtn {
+  flex: 0 0 auto;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.875rem;
+  background: #fff;
+  color: var(--secondary);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+
+#starFilterBtn:hover {
+  background: var(--border-light);
+  color: var(--text);
+}
+
+#starFilterBtn.is-active,
+#starFilterBtn.is-active:hover {
+  background: var(--star-bg);
+  border-color: var(--star-border);
+  color: var(--star);
 }
 
 #searchInput {
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);

@@ -39,8 +39,9 @@
     <header class="visually-hidden">
         <h1>Local Notes — a private, offline pastebin</h1>
         <p>
-            A distraction-free writing space that lives entirely in your browser. Jot down text in a big textarea,
-            keep multiple notes open in tabs, save them with one click, and search through everything later.
+            A distraction-free writing space that lives entirely in your browser. Jot down text in a big textarea and
+            keep multiple notes open in tabs — every open tab saves itself automatically, so nothing is ever lost.
+            Star the ones that matter, close the rest, and search through everything later.
             There is no backend and no account: your notes are stored locally with IndexedDB and never leave your
             device.
         </p>
@@ -50,21 +51,24 @@
         <a href="https://github.com/mbogdan0/local-notes" target="_blank" rel="noopener">view the source on GitHub</a>.
     </div>
 
-    <div id="tabBar" class="tab-bar"></div>
+    <div id="tabBar" class="tab-bar" role="tablist" aria-label="Open notes"></div>
 
     <input id="descInput" type="text" placeholder="Short description (optional)" autocomplete="off" />
     <textarea id="mainText" placeholder="Start typing…"></textarea>
 
     <div id="controls">
         <div class="controls-left">
-            <button id="saveBtn" disabled>Save note</button>
+            <button id="doneBtn" disabled>Done</button>
             <button id="clearBtn">Clear</button>
-            <span id="saveStatus" class="save-status" role="status" aria-live="polite"></span>
+            <span id="autosaveStatus" class="autosave-status is-idle" role="status" aria-live="polite">
+                <span class="autosave-label"></span><span class="autosave-ago" aria-hidden="true"></span>
+            </span>
+            <span id="docStats" class="doc-stats" aria-hidden="true"></span>
 
             <div id="menu" class="menu">
                 <button id="menuBtn" type="button" aria-haspopup="true" aria-expanded="false">More ▾</button>
                 <div id="menuList" class="menu-list" hidden>
-                    <button id="saveCloseAllBtn" type="button">Save &amp; close all</button>
+                    <button id="closeAllBtn" type="button">Close all tabs</button>
                     <button id="exportBtn" type="button">Export</button>
                     <button id="importBtn" type="button">Import</button>
                     <button id="deleteAllBtn" type="button" class="menu-danger">Delete all</button>
@@ -87,6 +91,7 @@
 
     <div id="searchRow">
         <input id="searchInput" type="search" placeholder="Search saved notes…" autocomplete="off" />
+        <button id="starFilterBtn" type="button" aria-pressed="false">☆ Starred only</button>
     </div>
 
     <ul id="savesList"></ul>

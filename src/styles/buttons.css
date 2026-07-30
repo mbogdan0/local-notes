@@ -44,17 +44,17 @@ button:disabled:hover {
   background: var(--secondary);
 }
 
-/* Primary "Save note" action. Kept after :disabled so the disabled state wins. */
-#saveBtn {
+/* Primary "Done" action. Kept after :disabled so the disabled state wins. */
+#doneBtn {
   background: var(--primary);
 }
 
-#saveBtn:hover:not(:disabled) {
+#doneBtn:hover:not(:disabled) {
   background: var(--primary-hover);
 }
 
-#saveBtn:disabled,
-#saveBtn:disabled:hover {
+#doneBtn:disabled,
+#doneBtn:disabled:hover {
   background: var(--primary);
 }
 

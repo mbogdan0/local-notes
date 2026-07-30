@@ -1,4 +1,5 @@
 import { getAllSaves, addSave } from './db.js';
+import { newSaveId, savedAt } from './saves.js';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -21,8 +22,10 @@ export async function exportSaves() {
     notes: saves.map(s => ({
       id: s.id,
       date: s.date,
+      updatedAt: savedAt(s),
       description: s.description || '',
       content: s.content,
+      starred: s.starred === true,
     })),
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {
@@ -67,17 +70,21 @@ export async function importSaves(file) {
       skipped++;
       continue;
     }
-    // Ensure a unique id and a valid date.
+    // Ensure a unique id and a valid date. A colliding id is reassigned, so an
+    // open tab keeps pointing at its own record rather than the imported one.
     let id = Number(n.id);
-    if (!Number.isFinite(id) || seen.has(id)) id = Date.now() + imported;
-    const date =
-      n.date && !isNaN(new Date(n.date)) ? new Date(n.date).toISOString() : new Date().toISOString();
+    if (!Number.isFinite(id) || seen.has(id)) id = newSaveId();
+    const toIso = v =>
+      v && !isNaN(new Date(v)) ? new Date(v).toISOString() : null;
+    const date = toIso(n.date) || new Date().toISOString();
 
     const save = {
       id,
       date,
+      updatedAt: toIso(n.updatedAt) || date,
       description: typeof n.description === 'string' ? n.description : '',
       content: n.content,
+      starred: n.starred === true,
     };
     await addSave(save);
     existingContent.add(save.content);

@@ -15,7 +15,14 @@ function openDb() {
         db.createObjectStore(STORE_SAVES, { keyPath: 'id' });
       }
     };
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => {
+      const db = req.result;
+      // Without this, a future version bump would hang forever whenever the app
+      // is open in a second browser tab: the old connection blocks the upgrade
+      // and `openDb()`'s promise never settles.
+      db.onversionchange = () => db.close();
+      resolve(db);
+    };
     req.onerror = () => reject(req.error);
   });
   return dbPromise;

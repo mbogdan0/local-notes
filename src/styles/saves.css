@@ -23,6 +23,24 @@ ul#savesList {
   border-color: var(--secondary);
 }
 
+.saveItem.starred {
+  border-left: 3px solid var(--star);
+  background: var(--star-bg);
+}
+
+/* Makes the 1:1 tab/note relationship visible — otherwise autosaved cards look
+   unrelated to the tab they came from. */
+.saveOpenBadge {
+  align-self: flex-start;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid rgba(5, 150, 105, 0.35);
+  border-radius: 999px;
+  background: rgba(5, 150, 105, 0.08);
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
 .saveTitle {
   font-size: 0.998rem;
   font-weight: 600;
@@ -50,8 +68,34 @@ ul#savesList {
 .saveActions {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 0.4rem;
   margin-top: 0.25rem;
+}
+
+/* The star sits apart from the Open/Copy/Delete cluster. */
+.star-btn {
+  margin-right: auto;
+  width: 1.75rem;
+  padding: 0.3rem 0;
+  background: #fff;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  box-shadow: none;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.star-btn:hover {
+  background: var(--border-light);
+  color: var(--star);
+}
+
+.star-btn[aria-pressed='true'],
+.star-btn[aria-pressed='true']:hover {
+  background: var(--star-bg);
+  border-color: var(--star-border);
+  color: var(--star);
 }
 
 .saveActions button {
@@ -101,6 +145,12 @@ ul#savesList {
 .emptyState-icon {
   color: var(--border);
   margin-bottom: 0.25rem;
+}
+
+.emptyState-star {
+  font-size: 2.5rem;
+  line-height: 1;
+  color: var(--star-border);
 }
 
 .emptyState-title {

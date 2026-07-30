@@ -15,26 +15,37 @@
   gap: 0.5rem;
 }
 
-.save-status {
-  position: fixed;
-  left: 50%;
-  bottom: 1.25rem;
-  z-index: 40;
-  padding: 0.45rem 0.7rem;
-  background: var(--text);
-  border-radius: var(--radius);
-  color: #fff;
+/* Autosave state, shown inline and permanently rather than as a toast — the
+   whole point of autosaving is that you can look and see it happened. */
+.autosave-status {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2rem;
   font-size: 0.84rem;
-  font-weight: 600;
-  opacity: 0;
-  pointer-events: none;
-  transform: translate(-50%, 0.4rem);
-  transition: opacity 0.15s, transform 0.15s;
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+  transition: color 0.15s;
 }
 
-.save-status.is-visible {
-  opacity: 1;
-  transform: translate(-50%, 0);
+.autosave-status.is-saved {
+  color: var(--primary);
+}
+
+.autosave-status.is-error {
+  color: var(--danger);
+}
+
+.autosave-ago {
+  font-weight: 400;
+  opacity: 0.75;
+}
+
+.doc-stats {
+  font-size: 0.788rem;
+  color: var(--muted);
+  opacity: 0.7;
+  white-space: nowrap;
 }
 
 /* Dropdown menu (Export / Import / Delete all). */
