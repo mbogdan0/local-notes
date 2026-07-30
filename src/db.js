@@ -70,6 +70,15 @@ export function deleteSave(id) {
   });
 }
 
+// Bulk delete in a single transaction — one per record would be both slow and
+// non-atomic, leaving a half-deleted library behind if one of them failed.
+export function deleteSaves(ids) {
+  return tx('readwrite', store => {
+    ids.forEach(id => store.delete(id));
+    return { value: ids.length };
+  });
+}
+
 export function clearAllSaves() {
   return tx('readwrite', store => {
     store.clear();

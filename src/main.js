@@ -10,7 +10,13 @@ import {
   ADOPTION_NOTICE_MS,
   WORD_COUNT_LIMIT,
 } from './constants.js';
-import { getAllSaves, deleteSave, clearAllSaves, addSave } from './db.js';
+import {
+  getAllSaves,
+  deleteSave,
+  deleteSaves,
+  clearAllSaves,
+  addSave,
+} from './db.js';
 import { newSaveId, orderSaves } from './saves.js';
 import {
   renderSaves,
@@ -68,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const menuList = document.getElementById('menuList');
   const exportBtn = document.getElementById('exportBtn');
   const importBtn = document.getElementById('importBtn');
+  const deleteUnstarredBtn = document.getElementById('deleteUnstarredBtn');
   const deleteAllBtn = document.getElementById('deleteAllBtn');
   const fileInput = document.getElementById('fileInput');
 
@@ -221,6 +228,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const closable = tabs.filter(t => !t.starred);
     closeAllBtn.disabled =
       closable.length === 0 || (tabs.length === 1 && !tabHasText(tabs[0]));
+  };
+
+  const unstarredSaves = () => savesCache.filter(s => !s.starred);
+
+  // Menu-only state. Kept out of updateActions because that runs on every
+  // keystroke and this walks the whole library; the menu is opened deliberately.
+  const updateMenuActions = () => {
+    const count = unstarredSaves().length;
+    deleteUnstarredBtn.disabled = count === 0;
+    deleteUnstarredBtn.textContent = count
+      ? `Delete unstarred (${count})`
+      : 'Delete unstarred';
+    deleteAllBtn.disabled = savesCache.length === 0;
   };
 
   const updateDocStats = () => {
@@ -794,6 +814,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   menuBtn.addEventListener('click', () => {
     updateActions();
+    updateMenuActions();
     const open = menuList.hidden;
     menuList.hidden = !open;
     menuBtn.setAttribute('aria-expanded', String(open));
@@ -801,6 +822,85 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.addEventListener('click', e => {
     if (!menu.contains(e.target)) closeMenu();
+  });
+
+  deleteUnstarredBtn.addEventListener('click', async () => {
+    closeMenu();
+    const doomed = unstarredSaves();
+    if (!doomed.length) {
+      alert('Every saved note is starred.');
+      return;
+    }
+
+    const kept = savesCache.length - doomed.length;
+    const plural = n => (n === 1 ? '' : 's');
+    const confirmed = confirm(
+      `Delete ${doomed.length} unstarred note${plural(doomed.length)}?\n\n` +
+        (kept
+          ? `${kept} starred note${plural(kept)} will be kept.\n\n`
+          : 'Nothing is starred, so this empties the library.\n\n') +
+        'This cannot be undone.'
+    );
+    if (!confirmed) return;
+
+    const ids = new Set(doomed.map(s => s.id));
+    // Tabs holding a doomed note, captured before the links are cut.
+    const orphaned = rawList().filter(t => t.saveId != null && ids.has(t.saveId));
+
+    // Disarm and unlink synchronously: an armed timer, or a keystroke landing
+    // during the await below, would write the record straight back.
+    for (const tab of orphaned) {
+      cancelAutosave(tab.id);
+      tab.saveId = null;
+    }
+    // Drop any per-card undo countdown for a note that is about to go anyway.
+    for (const id of ids) {
+      const pending = pendingDeletions[id];
+      if (!pending) continue;
+      clearTimeout(pending.timeoutId);
+      clearInterval(pending.intervalId);
+      delete pendingDeletions[id];
+    }
+
+    // Through the autosave chain, so a write already in flight completes first
+    // and cannot land after the delete and resurrect its record.
+    let failed = false;
+    await queueWrite(async () => {
+      try {
+        await deleteSaves([...ids]);
+      } catch {
+        failed = true;
+      }
+    });
+
+    if (failed) {
+      // queueWrite swallows rejections, so without this the UI would claim the
+      // notes were deleted while they sat on disk and reappeared on reload.
+      // The cut tab links are not restored here, but startup reconciliation
+      // re-matches an unlinked tab to its record by content.
+      savesCache = await getAllSaves();
+      renderFiltered();
+      renderBar();
+      persistWorkspace();
+      alert('Could not delete the notes — storage refused the change.');
+      return;
+    }
+
+    savesCache = savesCache.filter(s => !ids.has(s.id));
+
+    // Close the tabs whose note just went. Leaving one open would re-create its
+    // text as a brand-new record on the next keystroke — the opposite of what
+    // was asked. The active tab is spared, as everywhere else: it stays open,
+    // unlinked, so the caret is never yanked out from under the user.
+    const activeId = activeTabId();
+    for (const tab of orphaned) {
+      if (tab.id !== activeId) closeTab(tab.id);
+    }
+
+    renderFiltered();
+    renderBar();
+    persistWorkspace();
+    focusEditor();
   });
 
   deleteAllBtn.addEventListener('click', async () => {

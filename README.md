@@ -21,6 +21,7 @@ It's yours now too. Enjoy. 🎉
 - **Markdown reading view** 📖 — every note opens either in the editor or as rendered Markdown, in its own panel. GitHub-flavoured, so tables, fenced code, task lists and strikethrough all work. The mode is remembered per note; double-click the rendered page to go back to editing.
 - **Search** 🔍 — find that thing you wrote three weeks ago by a word you half-remember.
 - **Undo on Clear / Delete** ↩️ — a 5-second "wait, no" window, because we all misclick. Letting Clear's window lapse on an empty tab is also the deliberate way to throw a note away.
+- **Delete unstarred** 🧹 — the bulk counterpart to starring: keep what you starred, bin the rest. It tells you the exact count before it does anything, and unlike the per-note Delete it has no undo, so it asks first.
 - **Empty state** 🫙 — a friendly nudge when there's nothing here yet, instead of a sad blank void.
 - **Export / Import** 📦 — your notes as JSON, to back up or move between browsers.
 - **Width & font toggles** — narrow/wide, sans/mono. Small comforts.
