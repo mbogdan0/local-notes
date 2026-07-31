@@ -29,6 +29,7 @@ import {
   markOpenSaveItems,
 } from './render.js';
 import { filterSaves } from './search.js';
+import { escapeHtml } from './format.js';
 import { renderMarkdown } from './markdown.js';
 import { loadSettings, applySetting, SETTING_TYPES } from './settings.js';
 import { exportSaves, importSaves } from './exportImport.js';
@@ -281,19 +282,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Show either the textarea or the rendered reading panel, per the active
   // tab's own mode. The panel is read-only; content only ever changes in Edit.
-  // Source of whatever is currently rendered in the panel.
-  let renderedSource = null;
-
+  // Always renders. There used to be a "skip if the source is unchanged" cache
+  // here, but it marked a source as rendered before the render actually ran, so
+  // one failure left the panel blank and every later open of that note was
+  // skipped as already-current. Callers avoid the redundant work instead, by
+  // only re-rendering when the content really changed.
   const renderReadingPanel = source => {
-    // The description stays editable in reading mode and its keystrokes reach
-    // onEdit too, so without this the whole note would be re-parsed on every
-    // one of them. Identical source means identical output.
-    if (source === renderedSource) return;
-    renderedSource = source;
-    const html = renderMarkdown(source);
+    let html = '';
+    try {
+      html = renderMarkdown(source);
+    } catch {
+      markdownView.innerHTML =
+        '<p class="markdown-empty">This note could not be rendered as Markdown. Switch to Edit to read it as plain text.</p>';
+      return;
+    }
+
+    if (html.trim()) {
+      markdownView.innerHTML = html;
+      return;
+    }
+
+    if (source.trim() === '') {
+      markdownView.innerHTML =
+        '<p class="markdown-empty">Nothing to read yet — switch to Edit and start typing.</p>';
+      return;
+    }
+
+    // The note plainly has text, yet Markdown produced nothing from it: a note
+    // made only of link reference definitions ("[a]: /url") is all metadata and
+    // renders to an empty document. Claiming there is nothing here would be a
+    // flat lie, so show the text itself.
     markdownView.innerHTML =
-      html.trim() ||
-      '<p class="markdown-empty">Nothing to read yet — switch to Edit and start typing.</p>';
+      '<p class="markdown-empty">Markdown renders nothing from this note — it is all reference syntax. Showing it as plain text:</p>' +
+      `<pre><code>${escapeHtml(source)}</code></pre>`;
   };
 
   const applyViewMode = () => {
@@ -494,14 +515,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Called on every keystroke.
   const onEdit = () => {
+    const before = active() ? active().content : null;
     syncEditorToActive();
+    const tab = active();
     scheduleAutosave(activeTabId());
-    refreshChip(active());
+    refreshChip(tab);
     updateDocStats();
     updateActions();
     // The textarea is hidden in reading mode, but Clear and its Undo still
-    // change the content from underneath it — so the panel has to re-render.
-    if (!markdownView.hidden) applyViewMode();
+    // change the content from underneath it. Only when it actually moved,
+    // though: the description stays editable in reading mode and its keystrokes
+    // reach here too, and they must not re-parse the whole note.
+    if (!markdownView.hidden && (!tab || tab.content !== before)) {
+      applyViewMode();
+    }
     persistWorkspace();
   };
 
