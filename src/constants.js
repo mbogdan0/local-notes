@@ -3,6 +3,7 @@ export const KEY_DRAFT = 'autosave_draft';
 export const KEY_WORKSPACE = 'workspace_tabs';
 export const KEY_WIDTH = 'notes_maxWidth';
 export const KEY_FONT = 'notes_fontFamily';
+export const KEY_SCALE = 'notes_fontScale';
 
 // IndexedDB location for saved notes.
 export const DB_NAME = 'local-notes';
@@ -12,6 +13,8 @@ export const STORE_SAVES = 'saves';
 // Defaults match the original stylesheet.
 export const DEFAULT_WIDTH = '1050px';
 export const DEFAULT_FONT = "'JetBrains Mono', monospace";
+// Multiplies the root font size, so every rem-based size scales with it.
+export const DEFAULT_SCALE = '1';
 
 // How many characters of content to show in a save preview.
 export const PREVIEW_LENGTH = 200;

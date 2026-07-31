@@ -10,9 +10,9 @@
   border-radius: var(--radius);
   background: #fff;
   box-shadow: var(--shadow);
-  /* Deliberately not var(--editor-font): the Sans/Mono switch is an editor
-     preference, and monospace headings and tables read badly. */
-  font-family: 'Inter', sans-serif;
+  /* Follows the Sans/Mono switch, like the editor does. Code keeps its own
+     monospace face below regardless, since that distinction is the point. */
+  font-family: var(--editor-font);
   font-size: 1rem;
   line-height: 1.65;
   color: var(--text);

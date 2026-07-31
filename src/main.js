@@ -30,7 +30,7 @@ import {
 } from './render.js';
 import { filterSaves } from './search.js';
 import { renderMarkdown } from './markdown.js';
-import { loadSettings, applySetting } from './settings.js';
+import { loadSettings, applySetting, SETTING_TYPES } from './settings.js';
 import { exportSaves, importSaves } from './exportImport.js';
 import {
   loadWorkspace,
@@ -281,6 +281,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Show either the textarea or the rendered reading panel, per the active
   // tab's own mode. The panel is read-only; content only ever changes in Edit.
+  // Source of whatever is currently rendered in the panel.
+  let renderedSource = null;
+
+  const renderReadingPanel = source => {
+    // The description stays editable in reading mode and its keystrokes reach
+    // onEdit too, so without this the whole note would be re-parsed on every
+    // one of them. Identical source means identical output.
+    if (source === renderedSource) return;
+    renderedSource = source;
+    const html = renderMarkdown(source);
+    markdownView.innerHTML =
+      html.trim() ||
+      '<p class="markdown-empty">Nothing to read yet — switch to Edit and start typing.</p>';
+  };
+
   const applyViewMode = () => {
     const tab = active();
     const mode = viewOf(tab);
@@ -290,10 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
     markdownView.hidden = !reading;
 
     if (reading) {
-      const html = renderMarkdown(tab ? tab.content : '');
-      markdownView.innerHTML =
-        html.trim() ||
-        '<p class="markdown-empty">Nothing to read yet — switch to Edit and start typing.</p>';
+      renderReadingPanel(tab ? tab.content : '');
     } else {
       // scrollHeight reads 0 while the textarea is hidden, so its height has to
       // be re-measured on the way back rather than trusted from before.
@@ -450,14 +462,22 @@ document.addEventListener('DOMContentLoaded', () => {
     Promise.all([...pendingWrites.keys()].map(id => flushTab(id)));
 
   // A record that just changed may newly match — or stop matching — the search.
-  function syncRecordIntoList(record) {
+  function syncRecordIntoList(record, { reposition = false } = {}) {
     const inList = Boolean(savesList.querySelector(`#save-item-${record.id}`));
     const matches =
       filterSaves([record], searchInput.value, { starredOnly }).length > 0;
 
     if (matches && inList) {
-      // Deliberately not repositioned: cards must not shuffle while typing.
       updateSaveItem(savesList, record);
+      // Only on demand: cards must not shuffle underneath the reader while an
+      // autosave lands, but starring genuinely changes where the card belongs.
+      if (reposition) {
+        placeSaveItem(
+          savesList,
+          record,
+          visibleSaves().map(s => s.id)
+        );
+      }
     } else if (matches && !inList) {
       placeSaveItem(
         savesList,
@@ -510,18 +530,10 @@ document.addEventListener('DOMContentLoaded', () => {
     renderBar(); // starring reorders the bar
     persistWorkspace();
 
-    if (!record) return;
-    if (starredOnly) {
-      renderFiltered(); // un-starring under the filter removes the card
-    } else {
-      updateSaveItem(savesList, record);
-      placeSaveItem(
-        savesList,
-        record,
-        visibleSaves().map(s => s.id)
-      );
-      markOpenSaveItems(savesList, openSaveIds());
-    }
+    // Goes through the same path as an autosave so the search filter is
+    // honoured: starring from a chip must not inject a card that the current
+    // query excludes, and un-starring under "Starred only" must remove it.
+    if (record) syncRecordIntoList(record, { reposition: true });
   }
 
   const copyText = async text => {
@@ -614,8 +626,15 @@ document.addEventListener('DOMContentLoaded', () => {
   viewControls.addEventListener('click', e => {
     const btn = e.target.closest('button');
     if (!btn) return;
-    if (btn.dataset.width) applySetting('width', btn.dataset.width);
-    else if (btn.dataset.font) applySetting('font', btn.dataset.font);
+    const type = SETTING_TYPES.find(name => btn.dataset[name] !== undefined);
+    if (!type) return;
+    applySetting(type, btn.dataset[type]);
+    // Width, font family and font size all change how the text wraps, so the
+    // textarea's measured height is now stale. Without this it keeps the old
+    // one and, because it is overflow:hidden, silently clips the note's tail.
+    if (!textArea.hidden) resize();
+    // The same reflow can push the active chip into a clipped row of the bar.
+    renderBar();
   });
 
   // ---- Workspace restore ----

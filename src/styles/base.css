@@ -22,6 +22,13 @@
   --editor-font: 'JetBrains Mono', monospace;
   /* Rows of tabs shown before the bar collapses behind its toggle. */
   --tab-rows: 3;
+  --font-scale: 1;
+
+  /* Scaling the root size scales every rem in the app at once, which is what
+     keeps the "Larger" text option proportional instead of a pile of
+     per-element overrides. Borders and other px values stay put, as they
+     should — a 1px rule does not want to be 1.085px. */
+  font-size: calc(100% * var(--font-scale));
 }
 
 * {

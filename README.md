@@ -19,13 +19,13 @@ It's yours now too. Enjoy. 🎉
 - **Everything saves itself** ⚡ — every open tab is continuously written into your notes library. There is no "did I save this?" moment, because there is nothing to decide: closing a tab keeps the note. The workspace also gets flushed to `localStorage` every 200ms, so a refresh (or a crash, no judgement) won't eat your text either.
 - **Stars** ⭐ — mark the tabs that matter. Starred tabs sort to the front, are spared by **Close unstarred** and **Delete unstarred**, and can be filtered in the library. This is the answer to "I have 30 tabs open and no idea which ones I care about."
 - **Two sweeps, both honest** 🧹 — **Close all tabs** closes all of them, no exceptions; **Close unstarred** keeps the starred ones. Closing loses nothing either way: the note is already in the library, and the star lives on the record too, so a closed starred note reopens starred.
-- **Markdown reading view** 📖 — every note opens either in the editor or as rendered Markdown, in its own panel. GitHub-flavoured, so tables, fenced code, task lists and strikethrough all work. The mode is remembered per note; double-click the rendered page to go back to editing.
+- **Markdown reading view** 📖 — every note opens either in the editor or as rendered Markdown, in its own panel. GitHub-flavoured, so tables, fenced code, task lists and strikethrough all work. It follows the font and size toggles like the editor does, keeping code monospace regardless. The mode is remembered per note; double-click the rendered page to go back to editing.
 - **Search** 🔍 — find that thing you wrote three weeks ago by a word you half-remember.
 - **Undo on Clear / Delete** ↩️ — a 5-second "wait, no" window, because we all misclick. Letting Clear's window lapse on an empty tab is also the deliberate way to throw a note away.
 - **Delete unstarred** 🧹 — the bulk counterpart to starring: keep what you starred, bin the rest. It tells you the exact count before it does anything, and unlike the per-note Delete it has no undo, so it asks first.
 - **Empty state** 🫙 — a friendly nudge when there's nothing here yet, instead of a sad blank void.
 - **Export / Import** 📦 — your notes as JSON, to back up or move between browsers.
-- **Width & font toggles** — narrow/wide, sans/mono. Small comforts.
+- **Width, font & size toggles** — narrow/wide, sans/mono, normal/larger. "Larger" scales the root font size, so every `rem` in the app grows together instead of just the editor; borders and other pixel values stay put, because a 1px rule does not want to be 1.085px.
 
 ## What it deliberately does *not* do 🚫
 
