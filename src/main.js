@@ -705,13 +705,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btn) switchView(btn.dataset.view);
   });
 
-  // Double-click, not single: a single click has to stay available for
-  // selecting and copying text out of the rendered note.
-  markdownView.addEventListener('dblclick', e => {
-    if (e.target.closest('a')) return; // let a link be a link
-    switchView('edit');
-  });
-
   // A write can't be awaited during unload; the 200ms localStorage flush plus
   // startup reconciliation is what actually closes that gap.
   document.addEventListener('visibilitychange', () => {
